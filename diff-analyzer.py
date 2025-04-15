@@ -8,8 +8,9 @@ import sys
 import json
 # import lmstudio as lms
 from pathlib import Path
-from zipdetails_analyzer import analyze_zipdetails
-from zipinfo_analyzer import analyze_zipinfo
+from analyzers.zipdetails_analyzer import analyze_zipdetails
+from analyzers.zipinfo_analyzer import analyze_zipinfo
+from analyzers.file_list_analyzer import analyze_file_list
 
 MAX_DIFFOSCOPE_FILES = 50
 
@@ -35,8 +36,10 @@ def analyze_diff_node(diff: dict) -> str:
             result += analyze_zipdetails(diff, result)
         elif "zipinfo" in diff["source1"]:
             result += analyze_zipinfo(diff, result)
+        elif "file list" in diff["source1"]:
+            result += analyze_file_list(diff, result)
         else:
-            result += f"File diff type: {diff['source1']}\n"
+            result += f"File diff type: {diff['source1']} {diff['source2']}\n"
             result += diff["unified_diff"]
 
     if "details" in diff:

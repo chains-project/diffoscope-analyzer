@@ -2,17 +2,17 @@ import re
 
 ZIPINFO_HEADER_PATTERN = re.compile(r'^([+-])Zip file size: (\d+ bytes), number of entries: (\d+)$')
 ZIPINFO_FILE_PATTERN = re.compile(r"""
-^(?P<sign>[+-])
-(?P<perm>[\-dcbslprwxRWXsStT]+)\s+
-(?P<version>\d+\.\d+)\s+
-(?P<os>[a-z]{3})\s+
-(?P<size>\d+)\s+
-(?P<flags>\S{2})\s+
-(?P<method>\S{4})\s+
-(?P<date>\d{2}-[A-Za-z]{3}-\d{2})\s+
-(?P<time>\d{2}:\d{2})\s+
-(?P<path>.+)
-""".replace('\n', ''))
+    ^(?P<sign>[+-])                      # Diff sign (+ for added, - for removed)
+    (?P<perm>[\-dcbslprwxRWXsStT]+)\s+   # File permissions
+    (?P<version>\d+\.\d+)\s+             # ZIP version (e.g., 2.0)
+    (?P<os>[a-z]{3})\s+                  # Operating system (e.g., fat, unix)
+    (?P<size>\d+)\s+                     # Compressed size in bytes
+    (?P<flags>\S{2})\s+                  # Compression flags
+    (?P<method>\S{4})\s+                 # Compression method (e.g., defN)
+    (?P<date>\d{2}-[A-Za-z]{3}-\d{2})\s+ # Date of the file (e.g., 23-Nov-20)
+    (?P<time>\d{2}:\d{2})\s+             # Time of the file (e.g., 16:22)
+    (?P<path>.+)                         # File path inside the ZIP
+""", re.VERBOSE)
 
 def analyze_zipinfo(diff, result):
     result += f"Source 1: {diff['source1']}\n"
