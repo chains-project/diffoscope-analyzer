@@ -6,13 +6,13 @@ Usage: python diff_analyzer.py <path_to_diff_file>
 
 import sys
 import json
-# import lmstudio as lms
+import lmstudio as lms
 from pathlib import Path
 from analyzers.zipdetails_analyzer import analyze_zipdetails
 from analyzers.zipinfo_analyzer import analyze_zipinfo
 from analyzers.file_list_analyzer import analyze_file_list
 
-MAX_DIFFOSCOPE_FILES = 50
+MAX_DIFFOSCOPE_FILES = 100
 
 def gather_x_diffoscope_files(root_dir: Path, numberOfFiles) -> list[Path]:
     """
@@ -39,6 +39,7 @@ def analyze_diff_node(diff: dict) -> str:
         elif "file list" in diff["source1"]:
             result += analyze_file_list(diff, result)
         else:
+            # result += analyze_file_diff(diff["unified_diff"])
             result += f"File diff type: {diff['source1']} {diff['source2']}\n"
             result += diff["unified_diff"]
 
@@ -64,10 +65,10 @@ def analyze_diff_file(file_path: Path) -> str:
 
 
 def analyze_file_diff(diff: str) -> str:
-    # model = lms.llm("gemma-3-27b-it")
-    # result = model.respond("Tell me the cause of the diff in the following diff input. Be thorough but concice:\n" + diff[:4000])
-    result = "Disabled for now"
-    return str(result)
+    model = lms.llm("gemma-3-27b-it")
+    result = model.respond("Tell me what you think is the type of this file. Ignore that it looks like a diff or patch and look at the rest. VERY SHORT ANSWER WITH FILE TYPE AND HOW CERTAIN YOU ARE ON THIS FORMAT: <file-type>. Answer nothing more. Here's the file snippet:\n" + diff[:1000])
+
+    return f"There are diffs in a file of type: {result}"
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

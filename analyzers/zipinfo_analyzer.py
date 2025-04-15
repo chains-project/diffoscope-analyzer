@@ -104,7 +104,7 @@ def analyze_zipinfo(diff, result):
                     continue
 
                 result += f"\nChanges for file: {path}\n"
-                print(f"Changes for file: {path}")
+                # print(f"Changes for file: {path}")
                 if date_changed:
                     timestamp_change = True
                     result += f"Date changed from {changes['date_before']} to {changes['date_after']}\n"
