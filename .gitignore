@@ -1,2 +1,7 @@
+# Project files
 output/
 report.txt
+summary.txt
+
+# Python
+__pycache__/
