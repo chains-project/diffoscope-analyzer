@@ -3,11 +3,11 @@ from collections import Counter
 
 ZIPDETAILS_DIFF_PATTERN = re.compile(r'^(?P<sign>[+-])(?:(?P<address>[A-F0-9]+)\s+(?P<data_type>[A-z]+(?:\s[A-z1-9#]+)*)+|\W+(?P<bit>\[Bits? [\d-]+\]))\s*(?P<value>.+)?$')
 
-def analyze_zipdetails(diff, result):
+def analyze_zipdetails(diff, report):
     total_diffs = 0
     diff_types = Counter()
-    result += f"Source 1: {diff['source1']}\n"
-    result += f"Source 2: {diff['source2']}\n"
+    report += f"Source 1: {diff['source1']}\n"
+    report += f"Source 2: {diff['source2']}\n"
     diff_lines = diff["unified_diff"].splitlines()
 
     diff_portion = []
@@ -22,13 +22,13 @@ def analyze_zipdetails(diff, result):
     if diff_portion:
         total_diffs += analyze_diff_portion(diff_portion, diff_types)
 
-    result += f"\nTotal number of diffs: {total_diffs:,}"
-    result += "\nTypes of diffs:"
+    report += f"\nTotal number of diffs: {total_diffs:,}"
+    report += "\nTypes of diffs:"
     for diff_type, count in diff_types.most_common():
         percentage = (count / total_diffs) * 100
-        result += f"\n{diff_type}: {count:,} occurrences ({percentage:.2f}%)"
+        report += f"\n{diff_type}: {count:,} occurrences ({percentage:.2f}%)"
 
-    return result
+    return report
 
 
 def analyze_diff_portion(diff_lines: list[str], diff_types: Counter) -> int:

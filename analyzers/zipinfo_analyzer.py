@@ -1,4 +1,5 @@
 import re
+import constants
 
 ZIPINFO_HEADER_PATTERN = re.compile(r'^([+-])Zip file size: (\d+ bytes), number of entries: (\d+)$')
 ZIPINFO_FILE_PATTERN = re.compile(r"""
@@ -14,9 +15,9 @@ ZIPINFO_FILE_PATTERN = re.compile(r"""
     (?P<path>.+)                         # File path inside the ZIP
 """, re.VERBOSE)
 
-def analyze_zipinfo(diff, result):
-    result += f"Source 1: {diff['source1']}\n"
-    result += f"Source 2: {diff['source2']}\n"
+def analyze_zipinfo(diff: dict, report: str) -> tuple[set[str], str]:
+    report += f"Source 1: {diff['source1']}\n"
+    report += f"Source 2: {diff['source2']}\n"
 
     diff_lines = diff["unified_diff"].splitlines()
 
@@ -67,34 +68,34 @@ def analyze_zipinfo(diff, result):
                 diff_line_results[path].update({
                             "permissions_before": permissions,
                             "size_before": size,
-                            "date_before": date,
+                            "timestamp_before": date,
                         })
             if sign == "+":
                 diff_line_results[path].update({
                             "permissions_after": permissions,
                             "size_after": size,
-                            "date_after": date,
+                            "timestamp_after": date,
                         })
 
 
     if "zipinfo_header" not in diff_line_results:
-                result += "No zipinfo header change.\n"
+                report += "No zipinfo header change.\n"
 
     date_change_count = 0
     for key, changes in diff_line_results.items():
         if key == "zipinfo_header":
             if changes["size_before"] != changes["size_after"]:
                 file_content_or_size_change = True
-                result += f"Zip file size changed from {size_before} bytes to {size_after} bytes.\n"
+                report += f"Zip file size changed from {size_before} bytes to {size_after} bytes.\n"
             if changes["num_entries_before"] != changes["num_entries_after"]:
                 number_of_files_change = True
-                result += f"Number of entries changed from {num_entries_before} to {num_entries_after}.\n"
+                report += f"Number of entries changed from {num_entries_before} to {num_entries_after}.\n"
             if changes["size_before"] == changes["size_after"] and changes["num_entries_before"] == changes["num_entries_after"]:
-                result += "No zipinfo header change even though there is a diff in header.\n"
+                report += "No zipinfo header change even though there is a diff in header.\n"
         else:
             path = key
-            if "date_before" in changes and "date_after" in changes:
-                date_changed = changes["date_before"] != changes["date_after"]
+            if "timestamp_before" in changes and "timestamp_after" in changes:
+                date_changed = changes["timestamp_before"] != changes["timestamp_after"]
                 permissions_changed = changes["permissions_before"] != changes["permissions_after"]
                 size_changed = changes["size_before"] != changes["size_after"]
 
@@ -103,46 +104,47 @@ def analyze_zipinfo(diff, result):
                     date_change_count += 1
                     continue
 
-                result += f"\nChanges for file: {path}\n"
+                report += f"\nChanges for file: {path}\n"
                 # print(f"Changes for file: {path}")
                 if date_changed:
                     timestamp_change = True
-                    result += f"Date changed from {changes['date_before']} to {changes['date_after']}\n"
+                    report += f"Date changed from {changes['timestamp_before']} to {changes['timestamp_after']}\n"
                 if permissions_changed:
                     permission_change = True
-                    result += f"Permissions changed from {changes['permissions_before']} to {changes['permissions_after']}\n"
+                    report += f"Permissions changed from {changes['permissions_before']} to {changes['permissions_after']}\n"
                 if size_changed:
                     file_content_or_size_change = True
-                    result += f"Size changed from {changes['size_before']} to {changes['size_after']}\n"
+                    report += f"Size changed from {changes['size_before']} to {changes['size_after']}\n"
                 if not date_changed and not permissions_changed and not size_changed:
                     file_reordered_change = True
-                    result += "File is probably reordered\n"
-            elif "date_before" in changes and "date_after" not in changes:
+                    report += "File is probably reordered\n"
+            elif "timestamp_before" in changes and "timestamp_after" not in changes:
                 file_removed_change = True
-                result += f"\nFile removed. {path}\n"
-            elif "date_before" not in changes and "date_after" in changes:
+                report += f"\nFile removed. {path}\n"
+            elif "timestamp_before" not in changes and "timestamp_after" in changes:
                 file_added_change = True
-                result += f"\nFile added. {path}\n"
+                report += f"\nFile added. {path}\n"
             else:
                 raise ValueError(f"Unexpected changes for file: {path}")
 
+    change_types = set()
     if timestamp_change:
-        print("Timestamp(s) changed")
+        change_types.add(constants.TIMESTAMP_CHANGE)
     if permission_change:
-        print("File permissions changed")
+        change_types.add(constants.PERMISSION_CHANGE)
     if number_of_files_change:
-        print("Number of files changed")
+        change_types.add(constants.NUMBER_OF_FILES_CHANGE)
     if file_content_or_size_change:
-        print("File content or file size changed")
+        change_types.add(constants.FILE_CONTENT_OR_SIZE_CHANGE)
     if file_reordered_change:
-        print("File(s)  reordered")
+        change_types.add(constants.FILE_REORDERED_CHANGE)
     if file_removed_change:
-        print("File(s) removed")
+        change_types.add(constants.FILE_REMOVED_CHANGE)
     if file_added_change:
-        print("File(s) added")
+        change_types.add(constants.FILE_ADDED_CHANGE)
 
 
     if date_change_count > 0:
-        result += f"\n{date_change_count} files changed only their date.\n"
+        report += f"\n{date_change_count} files changed only their date.\n"
 
-    return result
+    return (change_types, report)
