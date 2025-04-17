@@ -13,7 +13,7 @@ from analyzers.zipdetails_analyzer import analyze_zipdetails
 from analyzers.zipinfo_analyzer import analyze_zipinfo
 from analyzers.file_list_analyzer import analyze_file_list
 
-MAX_DIFFOSCOPE_FILES = 5000
+MAX_DIFFOSCOPE_FILES = 1000
 
 def gather_x_diffoscope_files(root_dir: Path, numberOfFiles) -> list[Path]:
     """
