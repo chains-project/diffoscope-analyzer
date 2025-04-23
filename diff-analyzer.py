@@ -9,14 +9,13 @@ import json
 import time
 import constants
 # import lmstudio as lms # type: ignore
-from collections import Counter
 from pathlib import Path
 from analyzers.zipdetails_analyzer import analyze_zipdetails
 from analyzers.zipinfo_analyzer import analyze_zipinfo
 from analyzers.file_list_analyzer import analyze_file_list
 from analyzers.file_diff_analyzer import analyze_file_diff
 
-MAX_DIFFOSCOPE_FILES = 5000
+MAX_DIFFOSCOPE_FILES = 500
 
 def gather_x_diffoscope_files(root_dir: Path, numberOfFiles) -> list[Path]:
     """
@@ -73,6 +72,37 @@ def analyze_diff_node_recursive(diff: dict) -> tuple[set[str],str]:
 
     return (change_types, report)
 
+
+def process_diffoscope_files(input_path: Path, output_dir: Path) -> dict:
+    change_types_dict = {}
+    file_count = 0
+
+    for file_path in gather_x_diffoscope_files(input_path, MAX_DIFFOSCOPE_FILES):
+        file_count += 1
+        print(f"File: {file_path}")
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                diff_data: dict = json.loads(f.read())
+            (change_types, report) = analyze_diff_node(diff_data)
+            if change_types:
+                for change_type in change_types:
+                    change_types_dict.setdefault(change_type, [])
+                    change_types_dict[change_type].append(file_path)
+                change_types_dict.setdefault(frozenset(change_types), [])
+                change_types_dict[frozenset(change_types)].append(file_path)
+
+            # Create output path in the output directory
+            output_path = output_dir / file_path.name.replace(".diffoscope.json", ".analysis.txt")
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(report)
+            print(f"Report at {output_path}\n")
+            print("----------------------------\n")
+        except FileNotFoundError:
+            print(f"Error: File not found: {file_path}")
+            sys.exit(1)
+
+    return (change_types_dict, file_count)
+
 # def analyze_file_diff(diff: str) -> str:
 #     model = lms.llm("gemma-3-27b-it")
 #     result = model.respond("Tell me what you think is the type of this file. Ignore that it looks like a diff or patch and look at the rest. VERY SHORT ANSWER WITH FILE TYPE AND HOW CERTAIN YOU ARE ON THIS FORMAT: <file-type>. Answer nothing more. Here's the file snippet:\n" + diff[:1000])
@@ -90,31 +120,7 @@ if __name__ == "__main__":
     output_dir = Path("output")
     output_dir.mkdir(exist_ok=True)
 
-    change_types_dict = {}
-
-    file_count = 0
-    for file_path in gather_x_diffoscope_files(Path(sys.argv[1]), MAX_DIFFOSCOPE_FILES):
-        file_count += 1
-        print(f"File: {file_path}")
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                diff_data: dict = json.loads(f.read())
-            (change_types, report) = analyze_diff_node(diff_data)
-            if change_types:
-                for change_type in change_types:
-                    change_types_dict.setdefault(change_type, [])
-                    change_types_dict[change_type].append(file_path)
-                change_types_dict.setdefault(frozenset(change_types), [])
-                change_types_dict[frozenset(change_types)].append(file_path)
-            # Create output path in the output directory
-            output_path = output_dir / file_path.name.replace(".diffoscope.json", ".analysis.txt")
-            with open(output_path, 'w', encoding='utf-8') as f:
-                f.write(report)
-            print(f"Report at {output_path}\n")
-            print("----------------------------\n")
-        except FileNotFoundError:
-            print(f"Error: File not found: {file_path}")
-            sys.exit(1)
+    change_types_dict, file_count = process_diffoscope_files(Path(sys.argv[1]), output_dir)
 
     combined_change_types = {key: value for key, value in change_types_dict.items() if isinstance(key, frozenset)}
     simple_change_types = {key: value for key, value in change_types_dict.items() if isinstance(key, str)}
@@ -125,18 +131,12 @@ if __name__ == "__main__":
         sorted_change_types = sorted(change_types)
         change_types_str = ', '.join(sorted_change_types)
         print(f"\n{change_types_str}: {len(files):,} occurrences ({percentage:.2f}%)")
-        if constants.TIMESTAMP_CHANGE in change_type:
-            for file in files:
-                print(f"Changes in file: {file}")
 
     print("\nSimple types of changes:")
     for change_type, files in sorted(simple_change_types.items(), key=lambda item: len(item[1]), reverse=True):
         percentage = (len(files) / MAX_DIFFOSCOPE_FILES) * 100
         print(f"\n{change_type}: {len(files):,} occurrences ({percentage:.2f}%)")
 
-    total_percentage_without_change = len(change_types_dict.get(constants.UNKNOWN_CHANGE)) / MAX_DIFFOSCOPE_FILES * 100
-
-    print(f"\nTotal percentage of files without known enumerated changes: {100 - total_percentage_without_change:.2f}%")
 
     elapsed_time = time.time() - time_before
     print(f"\nWent through {file_count} files. Elapsed time: {elapsed_time:.2f} seconds, average time per file: {elapsed_time / MAX_DIFFOSCOPE_FILES:.2f} seconds")
