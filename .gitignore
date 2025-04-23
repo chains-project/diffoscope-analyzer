@@ -1,7 +1,9 @@
 # Project files
 output/
+tmp/
 report.txt
 summary.txt
 
 # Python
 __pycache__/
+pythonvenv/

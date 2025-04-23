@@ -11,3 +11,6 @@ FILE_CONTENT_OR_SIZE_CHANGE = "file_content_or_size_change"
 FILE_REORDERED_CHANGE = "file_reordered_change"
 FILE_REMOVED_CHANGE = "file_removed_change"
 FILE_ADDED_CHANGE = "file_added_change"
+
+# Special case for unknown changes
+UNKNOWN_CHANGE = "unknown_change"

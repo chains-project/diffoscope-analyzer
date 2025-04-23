@@ -9,7 +9,7 @@ FILE_LIST_PATTERN = re.compile(r"""
     (?P<group>\S+)\s+\(\d+\)\s+          # Group (with GID)
     (?P<size>\d+)\s+                     # Size in bytes
     (?P<timestamp>\d{4}-\d{2}-\d{2}      # Date YYYY-MM-DD
-        \s+\d{2}:\d{2}:\d{2}\.\d+)       # Time HH:MM:SS.micro
+    \s+\d{2}:\d{2}:\d{2}\.\d+)           # Time HH:MM:SS.micro
     \s+(?P<path>.+)                      # File path
 """, re.VERBOSE)
 
