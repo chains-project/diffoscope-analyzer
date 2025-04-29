@@ -12,5 +12,12 @@ FILE_REORDERED_CHANGE = "file_reordered_change"
 FILE_REMOVED_CHANGE = "file_removed_change"
 FILE_ADDED_CHANGE = "file_added_change"
 
+# Experimental
+HASH_IN_XML_CHANGE = "hash_in_xml_change"
+HASH_IN_JSON_CHANGE = "hash_in_json_change"
+VERSION_IN_XML_CHANGED_OR_REMOVED_CHANGE = "version_in_xml_changed_or_removed_change"
+PROPERTY_IN_XML_CHANGED_OR_REMOVED_CHANGE = "property_in_xml_changed_or_removed_change"
+POM_CHANGE = "pom_change"
+
 # Special case for unknown changes
 UNKNOWN_CHANGE = "unknown_change"

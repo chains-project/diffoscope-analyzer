@@ -7,28 +7,36 @@ Usage: python diff_analyzer.py <path_to_diff_file>
 import sys
 import json
 import time
-import constants
-# import lmstudio as lms # type: ignore
 from pathlib import Path
-from analyzers.zipdetails_analyzer import analyze_zipdetails
-from analyzers.zipinfo_analyzer import analyze_zipinfo
-from analyzers.file_list_analyzer import analyze_file_list
-from analyzers.file_diff_analyzer import analyze_file_diff
+from typing import List, Tuple, Dict, Set
+
+# Assuming constants.py is in the same directory or available in PYTHONPATH
+try:
+    import constants
+except ImportError:
+    print("Error: constants.py not found. Please ensure it is in the same directory or in your PYTHONPATH.")
+    sys.exit(1)
+
+# Import analyzers (assuming they are in a subdirectory named 'analyzers')
+try:
+    from analyzers.zipdetails_analyzer import analyze_zipdetails
+    from analyzers.zipinfo_analyzer import analyze_zipinfo
+    from analyzers.file_list_analyzer import analyze_file_list
+    from analyzers.file_diff_analyzer import analyze_file_diff
+except ImportError:
+    print("Error: Analyzers modules not found.  Please ensure they are in the 'analyzers' subdirectory.")
+    sys.exit(1)
 
 MAX_DIFFOSCOPE_FILES = 500
 
-def gather_x_diffoscope_files(root_dir: Path, numberOfFiles) -> list[Path]:
+def gather_x_diffoscope_files(root_dir: Path, max_files) -> list[Path]:
     """
     Gather x diffoscope files from the given directory and its subdirectories.
     """
     if not root_dir.is_dir():
         raise ValueError(f"Provided path {root_dir} is not a directory.")
-    diffoscope_files = []
-    for path in root_dir.rglob('*.diffoscope.*'):
-        if len(diffoscope_files) >= numberOfFiles:
-            break
-        diffoscope_files.append(path)
-    return diffoscope_files
+
+    return list(root_dir.rglob('*.diffoscope.json'))[:max_files]
 
 
 def analyze_diff_node(diff: dict) -> tuple[set[str],str]:
@@ -43,35 +51,52 @@ def analyze_diff_node(diff: dict) -> tuple[set[str],str]:
     return (change_types, report)
 
 
-def analyze_diff_node_recursive(diff: dict) -> tuple[set[str],str]:
+def analyze_diff_node_recursive(diff: Dict) -> Tuple[Set[str], str]:
+    """
+    Recursively analyzes a diff node to determine types of changes and generate a report.
+
+    Args:
+        diff (Dict): A dictionary representing the diff data.
+
+    Returns:
+        Tuple[Set[str], str]: A set of unique change types and a concatenated report string.
+    """
     report = "\n-----------------------\n"
     change_types = set()
 
+    # Analyze unified diff if present
     if "unified_diff" in diff and diff["unified_diff"]:
-        if "zipinfo" in diff["source1"]:
-            (zipinfo_change_types, zipinfo_report) = analyze_zipinfo(diff, report)
-            report += zipinfo_report
-            change_types = change_types | zipinfo_change_types
-        elif "file list" in diff["source1"]:
-            (file_list_change_types, file_list_report) = analyze_file_list(diff, report)
-            report += file_list_report
-            change_types = change_types | file_list_change_types
-        elif "zipdetails" in diff["source1"]:
-            report += analyze_zipdetails(diff, report)
-        else:
-            pass
-            (file_diff_change_types, report) = analyze_file_diff(diff, report)
-            change_types = change_types | file_diff_change_types
-            # report += diff["unified_diff"]
+        child_change_types, child_report = _analyze_source_type(diff, report)
+        change_types.update(child_change_types)
+        report += child_report
 
+    # Recursively process child diff details
     if "details" in diff:
         for detail in diff["details"]:
-            (child_change_type, report) = analyze_diff_node_recursive(detail)
-            change_types = change_types | child_change_type
-            report += report
+            child_change_types, child_report = analyze_diff_node_recursive(detail)
+            change_types.update(child_change_types)
+            report += child_report
 
-    return (change_types, report)
+    return change_types, report
 
+
+def _analyze_source_type(diff: Dict, report: str) -> Tuple[Set[str], str]:
+    """Helper to handle different source types."""
+    source_type = diff["source1"]
+
+    match True:
+        case _ if "zipinfo" in source_type:
+            return analyze_zipinfo(diff, report)
+
+        case _ if "file list" in source_type:
+            return analyze_file_list(diff, report)
+
+        case _ if "zipdetails" in source_type:
+            additional_report = analyze_zipdetails(diff, report)
+            return set(), additional_report
+
+        case _:
+            return analyze_file_diff(diff, report)
 
 def process_diffoscope_files(input_path: Path, output_dir: Path) -> dict:
     change_types_dict = {}
@@ -139,4 +164,11 @@ if __name__ == "__main__":
 
 
     elapsed_time = time.time() - time_before
-    print(f"\nWent through {file_count} files. Elapsed time: {elapsed_time:.2f} seconds, average time per file: {elapsed_time / MAX_DIFFOSCOPE_FILES:.2f} seconds")
+    print(f"\nWent through {file_count} files. Elapsed time: {elapsed_time:.2f} seconds, average time per file: {elapsed_time / MAX_DIFFOSCOPE_FILES * 1000:.1f} milliseconds")
+
+    print("--------------------------")
+    files_with_unknown_diffs = simple_change_types.get(constants.UNKNOWN_CHANGE, [])
+    #print(f"  {len(files_with_unknown_diffs):,} files with unknown changes")
+    for file in files_with_unknown_diffs:
+        pass
+        #print(f"  {file}")
