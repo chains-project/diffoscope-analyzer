@@ -1,6 +1,7 @@
 import re
 import constants
 
+
 # We want to detect different types of timestamps on different formats
 TIMESTAMP_DIFF_PATTERN = re.compile(r"""
     ^\s*[-+]                            # line starts with optional space and - or +
@@ -79,47 +80,27 @@ def analyze_file_diff(diff: dict, report: str) -> tuple[set[str],str]:
     report += f"Source 1: {diff['source1']}\n"
     report += f"Source 2: {diff['source2']}\n"
 
-    if PARTIAL_POM_CHUNK_PATTERN.search(diff["unified_diff"]):
-        report += "Partial POM chunk detected\n"
-        change_types = {constants.POM_CHANGE}
-
-        # Type of pom change
-
-        return (change_types, report)
-
-    diff_lines = diff["unified_diff"].splitlines()
-
-    timestamp_change = False
-    hash_in_xml_change = False
-    hash_in_json_change = False
-    version_in_xml_change = False
-    property_in_xml_change = False
-    for line in diff_lines:
-        if TIMESTAMP_DIFF_PATTERN.search(line):
-            timestamp_change = True
-            report += f"Timestamp diff detected: {line}\n"
-        if HASH_IN_XML_DIFF_PATTERN.search(line):
-            hash_in_xml_change = True
-            report += f"Hash in XML diff detected: {line}\n"
-        if HASH_IN_JSON_DIFF_PATTERN.search(line):
-            hash_in_json_change = True
-            report += f"Hash in JSON diff detected: {line}\n"
-        if XML_VERSION_CHANGED_OR_REMOVED_PATTERN.search(line):
-            version_in_xml_change = True
-            report += f"XML version changed or removed: {line}\n"
-        if XML_PROPERTY_CHANGED_OR_REMOVED_PATTERN.search(line):
-            property_in_xml_change = True
-            report += f"XML property changed or removed: {line}\n"
-
     change_types = set()
-    if timestamp_change:
-        change_types.add(constants.TIMESTAMP_CHANGE)
-    if hash_in_xml_change:
-        change_types.add(constants.HASH_IN_XML_CHANGE)
-    if hash_in_json_change:
-        change_types.add(constants.HASH_IN_JSON_CHANGE)
-    if version_in_xml_change:
-        change_types.add(constants.VERSION_IN_XML_CHANGED_OR_REMOVED_CHANGE)
-    if property_in_xml_change:
-        change_types.add(constants.PROPERTY_IN_XML_CHANGED_OR_REMOVED_CHANGE)
+    unified_diff = diff["unified_diff"]
+
+    if PARTIAL_POM_CHUNK_PATTERN.search(unified_diff):
+        report += "Partial POM chunk detected\n"
+        change_types.add(constants.POM_CHANGE)
+        # TODO: list type of pom change
+
+    diff_line_analysis = {
+        TIMESTAMP_DIFF_PATTERN: (constants.TIMESTAMP_CHANGE, "Timestamp diff detected"),
+        HASH_IN_XML_DIFF_PATTERN: (constants.HASH_IN_XML_CHANGE, "Hash in XML diff detected"),
+        HASH_IN_JSON_DIFF_PATTERN: (constants.HASH_IN_JSON_CHANGE, "Hash in JSON diff detected"),
+        XML_VERSION_CHANGED_OR_REMOVED_PATTERN: (constants.VERSION_IN_XML_CHANGED_OR_REMOVED_CHANGE, "XML version changed or removed"),
+        XML_PROPERTY_CHANGED_OR_REMOVED_PATTERN: (constants.PROPERTY_IN_XML_CHANGED_OR_REMOVED_CHANGE, "XML property changed or removed"),
+    }
+
+    for line in unified_diff.splitlines():
+        for pattern, (change_type, message) in diff_line_analysis.items():
+            if pattern.search(line):
+                change_types.add(change_type)
+                report += f"{message}: {line}\n"
+                break  # Move to the next line once a match is found
+
     return (change_types, report)
