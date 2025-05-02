@@ -45,7 +45,7 @@ PARTIAL_POM_CHUNK_PATTERN = re.compile(r"""
         artifactId |
         version |
         packaging |
-        name |
+        # name |
         dependencies |
         dependency |
         build |
@@ -57,24 +57,49 @@ PARTIAL_POM_CHUNK_PATTERN = re.compile(r"""
         id |
         phase |
         goals |
-        goal |
-        properties
-    )
-    \b               # Word boundary (so we don't match e.g., "artifactIdentifier")
+        goal
+        # properties |
+    )    \b               # Word boundary (so we don't match e.g., "artifactIdentifier")
     [^>]*>           # Anything until closing '>'
 """, re.VERBOSE | re.IGNORECASE)
 
-XML_VERSION_CHANGED_OR_REMOVED_PATTERN = re.compile(r"""
-    ^\s*[-+]                            # Line starts with optional whitespace, then - or +
-    .*?                                 # Non-greedy match up to the "alg" key
-    <version>                           # Match <version> tag
+# Regex for diff line with +- in an xml file
+# With capture group for the property name
+XML_DIFF_LINE_PATTERN = re.compile(r"""
+    ^\s*(?P<sign>[+-])                  # Line starts with optional whitespace, then - or +
+    .*?                                 # Non-greedy match up to the tag
+    <(?P<tag_name>[\w\-]+)              # Capture the tag name (e.g., <property>)
 """, re.VERBOSE)
 
-XML_PROPERTY_CHANGED_OR_REMOVED_PATTERN = re.compile(r"""
-    ^\s*[-+]                            # Line starts with optional whitespace, then - or +
-    .*?                                 # Non-greedy match up to the "alg" key
-    <property>                          # Match <property> tag
-""", re.VERBOSE)
+def analyze_pom_diff(diff: str):
+    """
+    Analyze what has been added and removed in the Pom file
+    """
+    ADDED = "ADDED"
+    REMOVED = "REMOVED"
+    tags_changed = {}
+    report = ""
+    for line in diff.splitlines():
+        match = XML_DIFF_LINE_PATTERN.match(line)
+        if match:
+            tag_name = match.group("tag_name")
+            # We have a property that has been changed
+            # if it is not in the properties_changed dict, we add it
+            tags_changed.setdefault(tag_name, set())
+            if match.group("sign") == "+":
+                tags_changed[tag_name].add(ADDED)
+            elif match.group("sign") == "-":
+                tags_changed[tag_name].add(REMOVED)
+
+    for tag, changes in tags_changed.items():
+        if ADDED in changes and REMOVED in changes:
+            report += f"Tag <{tag}> has been changed\n"
+        elif ADDED in changes:
+            report += f"Tag <{tag}> has been added\n"
+        elif REMOVED in changes:
+            report += f"Tag <{tag}> has been removed\n"
+    return report
+
 
 def analyze_file_diff(diff: dict, report: str) -> tuple[set[str],str]:
     report += f"Source 1: {diff['source1']}\n"
@@ -82,18 +107,18 @@ def analyze_file_diff(diff: dict, report: str) -> tuple[set[str],str]:
 
     change_types = set()
     unified_diff = diff["unified_diff"]
+    match = PARTIAL_POM_CHUNK_PATTERN.search(unified_diff)
 
-    if PARTIAL_POM_CHUNK_PATTERN.search(unified_diff):
-        report += "Partial POM chunk detected\n"
+    if match:
+        report += "Partial POM chunk detected, this is probably a pom file\n"
+
         change_types.add(constants.POM_CHANGE)
-        # TODO: list type of pom change
+        report += analyze_pom_diff(unified_diff)
 
     diff_line_analysis = {
         TIMESTAMP_DIFF_PATTERN: (constants.TIMESTAMP_CHANGE, "Timestamp diff detected"),
         HASH_IN_XML_DIFF_PATTERN: (constants.HASH_IN_XML_CHANGE, "Hash in XML diff detected"),
         HASH_IN_JSON_DIFF_PATTERN: (constants.HASH_IN_JSON_CHANGE, "Hash in JSON diff detected"),
-        XML_VERSION_CHANGED_OR_REMOVED_PATTERN: (constants.VERSION_IN_XML_CHANGED_OR_REMOVED_CHANGE, "XML version changed or removed"),
-        XML_PROPERTY_CHANGED_OR_REMOVED_PATTERN: (constants.PROPERTY_IN_XML_CHANGED_OR_REMOVED_CHANGE, "XML property changed or removed"),
     }
 
     for line in unified_diff.splitlines():
