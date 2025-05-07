@@ -15,8 +15,8 @@ ZIPINFO_FILE_PATTERN = re.compile(r"""
     (?P<path>.+)                         # File path inside the ZIP
 """, re.VERBOSE)
 
-def analyze_zipinfo(diff: dict, report: str) -> tuple[set[str], str]:
-    report += f"Source 1: {diff['source1']}\n"
+def analyze_zipinfo(diff: dict) -> tuple[set[str], str]:
+    report = f"Source 1: {diff['source1']}\n"
     report += f"Source 2: {diff['source2']}\n"
 
     diff_lines = diff["unified_diff"].splitlines()

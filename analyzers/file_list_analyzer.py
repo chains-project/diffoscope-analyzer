@@ -13,8 +13,8 @@ FILE_LIST_PATTERN = re.compile(r"""
     \s+(?P<path>.+)                      # File path
 """, re.VERBOSE)
 
-def analyze_file_list(diff: dict, report: str) -> tuple[set[str],str]:
-    report += f"Source 1: {diff['source1']}\n"
+def analyze_file_list(diff: dict) -> tuple[set[str],str]:
+    report = f"Source 1: {diff['source1']}\n"
     report += f"Source 2: {diff['source2']}\n"
 
     diff_lines = diff["unified_diff"].splitlines()

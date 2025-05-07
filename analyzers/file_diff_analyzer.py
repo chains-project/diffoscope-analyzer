@@ -4,14 +4,14 @@ import constants
 
 # We want to detect different types of timestamps on different formats
 TIMESTAMP_DIFF_PATTERN = re.compile(r"""
-    ^\s*[-+]                            # line starts with optional space and - or +
-    .*?                                # non-greedy match of anything up to the timestamp
-    (?P<timestamp>                     # named capture group 'timestamp'
-        \d{4}-\d{2}-\d{2}              # ISO date e.g., 2024-04-23
-        [ T]                           # T or space separator
-        \d{2}:\d{2}(:\d{2})?           # HH:MM[:SS] (optional seconds)
-        (\.\d+)?                       # optional milliseconds
-        (Z|[+-]\d{2}:\d{2})?           # optional timezone
+    ^\s*[-+].*?(
+        (?P<java_ts>                   # Java-style date
+            [A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+[A-Z]{3,4}\s+\d{4}
+        )
+        |
+        (?P<iso_ts>                    # ISO 8601 style date
+            \d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:\d{2})?
+        )
     )
 """, re.VERBOSE)
 
@@ -27,13 +27,23 @@ HASH_IN_XML_DIFF_PATTERN = re.compile(r"""
 """, re.VERBOSE)
 
 HASH_IN_JSON_DIFF_PATTERN = re.compile(r"""
-    ^\s*[-+]                            # Line starts with optional whitespace, then - or +
-    .*?                                 # Non-greedy match up to the "alg" key
-    \\?\"alg\"\\?                         # Match "alg" key with optional escaping
-    \s*:\s*                             # Match colon with optional spaces
-    \\?\"                                # Opening quote (escaped)
-    (?P<algo_json>[\w\-]+)              # Capture algorithm name (e.g., SHA3-256)
-    \\?\"                                # Closing quote (escaped)
+    ^\s*[-+]                              # Line starts with optional whitespace, then - or +
+    .*?                                   # Non-greedy match up to the key
+    (?:
+        \\?"alg"\\?                       # Match "alg" key (escaped or not)
+        \s*:\s*
+        \\?"(?P<algo_json>[\w\-]+)\\?"    # Capture algorithm name
+      |
+        \\?"content"\\?                   # Match "content" key (escaped or not)
+        \s*:\s*
+        \\?"(?P<content_hash>[a-fA-F0-9]{32,})\\?"  # Capture content hash
+    )
+""", re.VERBOSE)
+
+#+- followed by the hash with no space for the most common algorithms
+HASH_FILE_CHANGE_PATTERN = re.compile(r"""
+    ^\s*[-+]                              # Line starts with optional whitespace, then - or +
+    [a-fA-F0-9]{32,}                    # Match a hash (e.g., MD5, SHA1, SHA256)
 """, re.VERBOSE)
 
 PARTIAL_POM_CHUNK_PATTERN = re.compile(r"""
@@ -61,6 +71,11 @@ PARTIAL_POM_CHUNK_PATTERN = re.compile(r"""
         # properties |
     )    \b               # Word boundary (so we don't match e.g., "artifactIdentifier")
     [^>]*>           # Anything until closing '>'
+""", re.VERBOSE | re.IGNORECASE)
+
+COPYRIGHT_CHANGE_PATTERN = re.compile(r"""
+    ^\s*[-+]                            # Line starts with optional whitespace, then - or +
+    Copyright\s+                   # Match 'Copyright' with space
 """, re.VERBOSE | re.IGNORECASE)
 
 # Regex for diff line with +- in an xml file
@@ -101,8 +116,8 @@ def analyze_pom_diff(diff: str):
     return report
 
 
-def analyze_file_diff(diff: dict, report: str) -> tuple[set[str],str]:
-    report += f"Source 1: {diff['source1']}\n"
+def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
+    report = f"Source 1: {diff['source1']}\n"
     report += f"Source 2: {diff['source2']}\n"
 
     change_types = set()
@@ -119,6 +134,8 @@ def analyze_file_diff(diff: dict, report: str) -> tuple[set[str],str]:
         TIMESTAMP_DIFF_PATTERN: (constants.TIMESTAMP_CHANGE, "Timestamp diff detected"),
         HASH_IN_XML_DIFF_PATTERN: (constants.HASH_IN_XML_CHANGE, "Hash in XML diff detected"),
         HASH_IN_JSON_DIFF_PATTERN: (constants.HASH_IN_JSON_CHANGE, "Hash in JSON diff detected"),
+        HASH_FILE_CHANGE_PATTERN: (constants.HASH_FILE_CHANGE, "Hash file change detected"),
+        COPYRIGHT_CHANGE_PATTERN: (constants.COPYRIGHT_CHANGE, "Copyright change detected"),
     }
 
     for line in unified_diff.splitlines():

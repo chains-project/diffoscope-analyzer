@@ -3,10 +3,10 @@ from collections import Counter
 
 ZIPDETAILS_DIFF_PATTERN = re.compile(r'^(?P<sign>[+-])(?:(?P<address>[A-F0-9]+)\s+(?P<data_type>[A-z]+(?:\s[A-z1-9#]+)*)+|\W+(?P<bit>\[Bits? [\d-]+\]))\s*(?P<value>.+)?$')
 
-def analyze_zipdetails(diff, report):
+def analyze_zipdetails(diff):
     total_diffs = 0
     diff_types = Counter()
-    report += f"Source 1: {diff['source1']}\n"
+    report = f"Source 1: {diff['source1']}\n"
     report += f"Source 2: {diff['source2']}\n"
     diff_lines = diff["unified_diff"].splitlines()
 

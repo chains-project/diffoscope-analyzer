@@ -8,7 +8,6 @@ import sys
 import json
 import time
 from pathlib import Path
-from typing import List, Tuple, Dict, Set
 
 # Assuming constants.py is in the same directory or available in PYTHONPATH
 try:
@@ -23,11 +22,12 @@ try:
     from analyzers.zipinfo_analyzer import analyze_zipinfo
     from analyzers.file_list_analyzer import analyze_file_list
     from analyzers.file_diff_analyzer import analyze_file_diff
+    from analyzers.zipnote_analyzer import analyze_zipnote
 except ImportError:
     print("Error: Analyzers modules not found.  Please ensure they are in the 'analyzers' subdirectory.")
     sys.exit(1)
 
-MAX_DIFFOSCOPE_FILES = 1000
+MAX_DIFFOSCOPE_FILES = 5000
 
 def gather_x_diffoscope_files(root_dir: Path, max_files) -> list[Path]:
     """
@@ -36,7 +36,7 @@ def gather_x_diffoscope_files(root_dir: Path, max_files) -> list[Path]:
     if not root_dir.is_dir():
         raise ValueError(f"Provided path {root_dir} is not a directory.")
 
-    return list(root_dir.rglob('*.diffoscope.json'))[:max_files]
+    return list(root_dir.rglob('**/oss-rebuild-improved-2/*.diffoscope.json'))[:max_files]
 
 
 def analyze_diff_node(diff: dict) -> tuple[set[str],str]:
@@ -51,7 +51,7 @@ def analyze_diff_node(diff: dict) -> tuple[set[str],str]:
     return (change_types, report)
 
 
-def analyze_diff_node_recursive(diff: Dict) -> Tuple[Set[str], str]:
+def analyze_diff_node_recursive(diff: dict) -> tuple[set[str], str]:
     """
     Recursively analyzes a diff node to determine types of changes and generate a report.
 
@@ -64,9 +64,12 @@ def analyze_diff_node_recursive(diff: Dict) -> Tuple[Set[str], str]:
     report = "\n-----------------------\n"
     change_types = set()
 
+    if "comments" in diff and diff["comments"]:
+        report += f"Comments: {diff['comments']}\n"
+
     # Analyze unified diff if present
     if "unified_diff" in diff and diff["unified_diff"]:
-        child_change_types, child_report = _analyze_source_type(diff, report)
+        child_change_types, child_report = _analyze_source_type(diff)
         change_types.update(child_change_types)
         report += child_report
 
@@ -80,23 +83,26 @@ def analyze_diff_node_recursive(diff: Dict) -> Tuple[Set[str], str]:
     return change_types, report
 
 
-def _analyze_source_type(diff: Dict, report: str) -> Tuple[Set[str], str]:
+def _analyze_source_type(diff: dict) -> tuple[set[str], str]:
     """Helper to handle different source types."""
     source_type = diff["source1"]
 
     match True:
         case _ if "zipinfo" in source_type:
-            return analyze_zipinfo(diff, report)
+            return analyze_zipinfo(diff)
 
         case _ if "file list" in source_type:
-            return analyze_file_list(diff, report)
+            return analyze_file_list(diff)
 
         case _ if "zipdetails" in source_type:
-            additional_report = analyze_zipdetails(diff, report)
+            additional_report = analyze_zipdetails(diff)
             return set(), additional_report
 
+        case _ if "zipnote" in source_type:
+            return analyze_zipnote(diff)
+
         case _:
-            return analyze_file_diff(diff, report)
+            return analyze_file_diff(diff)
 
 def process_diffoscope_files(input_path: Path, output_dir: Path) -> dict:
     change_types_dict = {}
@@ -145,6 +151,37 @@ if __name__ == "__main__":
     output_dir = Path("output")
     output_dir.mkdir(exist_ok=True)
 
+    files = gather_x_diffoscope_files(Path(sys.argv[1]), MAX_DIFFOSCOPE_FILES)
+
+    # # Load normalization results
+    # with open("tmp/oss_rebuild_improved_2_result.txt", "r") as f:
+    #     normalization_data = json.load(f)
+
+    #     # Collect all diffoscope files from the JSON
+    #     json_diffoscope_files = set()
+    #     for entries in normalization_data.get("failed_normalization", {}).values():
+    #         for entry in entries:
+    #             json_diffoscope_files.add(Path(entry["diffoscope_diff"]).name)
+
+    #     # Gathered files (convert Path to str for comparison)
+    #     gathered_files = set(str(f.name) for f in files)
+
+    #     # Find files in JSON but not gathered
+    #     missing_in_gathered = json_diffoscope_files - gathered_files
+    #     # Find files gathered but not in JSON
+    #     extra_in_gathered = gathered_files - json_diffoscope_files
+
+    #     print(f"Files found but not in oss rebuild JSON: {len(extra_in_gathered)}")
+    #     for f in files:
+    #         if str(f.name) in extra_in_gathered:
+    #             print(f"  {f}")
+
+    #     print(f"Files in oss rebuild JSON but not found: {len(missing_in_gathered)}")
+    #     for f in sorted(missing_in_gathered):
+    #         print(f"  {f}")
+
+    # sys.exit(0)
+
     change_types_dict, file_count = process_diffoscope_files(Path(sys.argv[1]), output_dir)
 
     combined_change_types = {key: value for key, value in change_types_dict.items() if isinstance(key, frozenset)}
@@ -168,7 +205,6 @@ if __name__ == "__main__":
 
     print("--------------------------")
     files_with_unknown_diffs = simple_change_types.get(constants.UNKNOWN_CHANGE, [])
-    #print(f"  {len(files_with_unknown_diffs):,} files with unknown changes")
+    print(f"  {len(files_with_unknown_diffs):,} files with unknown changes")
     for file in files_with_unknown_diffs:
-        pass
-        #print(f"  {file}")
+        print(f"  {file}")

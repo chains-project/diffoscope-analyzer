@@ -2,6 +2,7 @@
 Here, we define constants for types of diffs in the project.
 """
 
+# Zipinfo
 TIMESTAMP_CHANGE = "timestamp_change"
 PERMISSION_CHANGE = "permission_change"
 OWNER_CHANGE = "owner_change"
@@ -12,10 +13,12 @@ FILE_REORDERED_CHANGE = "file_reordered_change"
 FILE_REMOVED_CHANGE = "file_removed_change"
 FILE_ADDED_CHANGE = "file_added_change"
 
-# Experimental
+# Experimental file diff changes
 HASH_IN_XML_CHANGE = "hash_in_xml_change"
 HASH_IN_JSON_CHANGE = "hash_in_json_change"
+HASH_FILE_CHANGE = "hash_file_change"
 POM_CHANGE = "pom_change"
+COPYRIGHT_CHANGE = "copyright_change"
 
 # Special case for unknown changes
 UNKNOWN_CHANGE = "unknown_change"
