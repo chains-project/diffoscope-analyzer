@@ -30,7 +30,7 @@ HASH_IN_JSON_DIFF_PATTERN = re.compile(r"""
     ^\s*[-+]                              # Line starts with optional whitespace, then - or +
     .*?                                   # Non-greedy match up to the key
     (?:
-        \\?"alg"\\?                       # Match "alg" key (escaped or not)
+        \\?"(alg|md5|sha1|sha256|sha512)"\\?                       # Match "alg" key or hash name (escaped or not)
         \s*:\s*
         \\?"(?P<algo_json>[\w\-]+)\\?"    # Capture algorithm name
       |
@@ -74,7 +74,8 @@ PARTIAL_POM_CHUNK_PATTERN = re.compile(r"""
 """, re.VERBOSE | re.IGNORECASE)
 
 COPYRIGHT_CHANGE_PATTERN = re.compile(r"""
-    ^\s*[-+]                            # Line starts with optional whitespace, then - or +
+    ^\s*[-+]                       # Line starts with optional whitespace, then - or +
+    \s*                            # Optional whitespace
     Copyright\s+                   # Match 'Copyright' with space
 """, re.VERBOSE | re.IGNORECASE)
 
@@ -85,6 +86,15 @@ XML_DIFF_LINE_PATTERN = re.compile(r"""
     .*?                                 # Non-greedy match up to the tag
     <(?P<tag_name>[\w\-]+)              # Capture the tag name (e.g., <property>)
 """, re.VERBOSE)
+
+GENERATED_INTERNAL_ID_PATTERN = re.compile(r"""
+    ^\s*[-+]                            # Line starts with optional whitespace, then - or +
+    .*?                                 # Non-greedy match
+    \$[a-zA-Z_]+\$\d+                     # Match a generated internal ID
+""", re.VERBOSE)
+
+IS_DIFF_LINE_PATTERN = re.compile(r"^\s*[-+]")
+
 
 def analyze_pom_diff(diff: str):
     """
@@ -120,6 +130,16 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
     report = f"Source 1: {diff['source1']}\n"
     report += f"Source 2: {diff['source2']}\n"
 
+    if "jandex" in diff["source1"] or "jandex" in diff["source2"]:
+        report += "Jandex diff detected, skipping analysis\n"
+        return {constants.JANDEX_CHANGE}, report
+
+    if "comments" in diff and diff["comments"]:
+        print (f"Comment: {diff['comments']}")
+        if diff["comments"] == ["Ordering differences only"]:
+            report += "Line ordering differences only, skipping analysis\n"
+            return {constants.LINE_ORDERING_CHANGE}, report
+
     change_types = set()
     unified_diff = diff["unified_diff"]
     match = PARTIAL_POM_CHUNK_PATTERN.search(unified_diff)
@@ -136,9 +156,13 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
         HASH_IN_JSON_DIFF_PATTERN: (constants.HASH_IN_JSON_CHANGE, "Hash in JSON diff detected"),
         HASH_FILE_CHANGE_PATTERN: (constants.HASH_FILE_CHANGE, "Hash file change detected"),
         COPYRIGHT_CHANGE_PATTERN: (constants.COPYRIGHT_CHANGE, "Copyright change detected"),
+        GENERATED_INTERNAL_ID_PATTERN: (constants.GENERATED_ID_CHANGE, "Generated internal ID detected"),
     }
 
     for line in unified_diff.splitlines():
+        if not IS_DIFF_LINE_PATTERN.match(line):
+            # Skip lines that are not relevant
+            continue
         for pattern, (change_type, message) in diff_line_analysis.items():
             if pattern.search(line):
                 change_types.add(change_type)

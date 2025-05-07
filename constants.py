@@ -19,6 +19,9 @@ HASH_IN_JSON_CHANGE = "hash_in_json_change"
 HASH_FILE_CHANGE = "hash_file_change"
 POM_CHANGE = "pom_change"
 COPYRIGHT_CHANGE = "copyright_change"
+JANDEX_CHANGE = "jandex_change"
+LINE_ORDERING_CHANGE = "line_ordering_change"
+GENERATED_ID_CHANGE = "generated_id_change"
 
 # Special case for unknown changes
 UNKNOWN_CHANGE = "unknown_change"
