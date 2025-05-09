@@ -8,6 +8,7 @@ import sys
 import json
 import time
 from pathlib import Path
+import oss_rebuild_files
 
 # Assuming constants.py is in the same directory or available in PYTHONPATH
 try:
@@ -27,7 +28,7 @@ except ImportError:
     print("Error: Analyzers modules not found.  Please ensure they are in the 'analyzers' subdirectory.")
     sys.exit(1)
 
-MAX_DIFFOSCOPE_FILES = 10000
+MAX_DIFFOSCOPE_FILES = 1000
 
 def gather_x_diffoscope_files(root_dir: Path, max_files) -> list[Path]:
     """
@@ -36,7 +37,13 @@ def gather_x_diffoscope_files(root_dir: Path, max_files) -> list[Path]:
     if not root_dir.is_dir():
         raise ValueError(f"Provided path {root_dir} is not a directory.")
 
-    return list(root_dir.rglob('**/oss-rebuild-improved-2/*.diffoscope.json'))[:max_files]
+    # Get the list of files to include from oss_rebuild_files module
+    oss_rebuild_files_list = oss_rebuild_files.failed_normalization_files
+
+    # Temporary filter for oss-rebuild-improved-2
+    all_files = list(root_dir.rglob('*.diffoscope.json'))
+    filtered_files = [f for f in all_files if 'oss-rebuild-improved-2' not in str(f) and f.name in oss_rebuild_files_list]
+    return filtered_files[:max_files]
 
 
 def analyze_diff_node(diff: dict) -> tuple[set[str],str]:
