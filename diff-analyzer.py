@@ -208,3 +208,25 @@ if __name__ == "__main__":
     print(f"  {len(files_with_unknown_diffs):,} files with unknown changes")
     for file in files_with_unknown_diffs:
         print(f"  {file}")
+
+
+    # Write to json files
+    # Write simple change types
+    simple_changes = {
+        change_type: [str(file) for file in files]
+        for change_type, files in simple_change_types.items()
+    }
+    with open(output_dir / "simple_change_types.json", "w") as f:
+        json.dump(simple_changes, f, indent=2)
+
+    # Write combined change types
+    combined_changes = {
+        ",".join(sorted(change_types)): [str(file) for file in files]
+        for change_types, files in combined_change_types.items()
+    }
+    with open(output_dir / "combined_change_types.json", "w") as f:
+        json.dump(combined_changes, f, indent=2)
+
+    print("\nChange types have been written to:")
+    print(f"  {output_dir}/simple_change_types.json")
+    print(f"  {output_dir}/combined_change_types.json")

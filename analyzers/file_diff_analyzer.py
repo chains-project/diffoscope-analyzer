@@ -10,31 +10,31 @@ TIMESTAMP_DIFF_PATTERN = re.compile(r"""
         )
         |
         (?P<iso_ts>                    # ISO 8601 style date
-            \d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:\d{2})?
+            \d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?:\d{2})?(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?
         )
     )
 """, re.VERBOSE)
 
 HASH_IN_XML_DIFF_PATTERN = re.compile(r"""
     ^\s*[-+]                            # Line starts with optional whitespace, then - or +
-    .*?                                 # Non-greedy match up to the <hash> tag
-        <hash\s+                        # Opening <hash> tag with space after
-        alg=                            # Match 'alg='
-        [\"'\\]*                        # Optional escaped or unescaped quotes
-        (?P<algo_xml>[\w\-]+)           # Capture algorithm name (e.g., MD5, SHA3-256)
-        [\"'\\]*                        # Optional closing quotes
-        >                               # End of opening tag
+    [^<]*                               # Match any characters until <
+    <hash\s+                            # Opening <hash> tag with space after
+    alg=                                # Match 'alg='
+    [\"'\\]*                            # Optional escaped or unescaped quotes
+    (?P<algo_xml>[\w\-]+)               # Capture algorithm name (e.g., MD5, SHA3-256)
+    [\"'\\]*                            # Optional closing quotes
+    >                                   # End of opening tag
 """, re.VERBOSE)
 
 HASH_IN_JSON_DIFF_PATTERN = re.compile(r"""
-    ^\s*[-+]                              # Line starts with optional whitespace, then - or +
-    .*?                                   # Non-greedy match up to the key
+    ^\s*[-+]                            # Line starts with optional whitespace, then - or +
+    .*?                                 # Non-greedy match up to the key
     (?:
-        \\?"(alg|md5|sha1|sha256|sha512)"\\?                       # Match "alg" key or hash name (escaped or not)
+        \\?"(?:alg|md5|sha1|sha256|sha512)"\\?    # Match "alg" key or hash name (escaped or not)
         \s*:\s*
-        \\?"(?P<algo_json>[\w\-]+)\\?"    # Capture algorithm name
+        \\?"(?P<algo_json>[\w\-]+)\\?"            # Capture algorithm name
       |
-        \\?"content"\\?                   # Match "content" key (escaped or not)
+        \\?"content"\\?                            # Match "content" key (escaped or not)
         \s*:\s*
         \\?"(?P<content_hash>[a-fA-F0-9]{32,})\\?"  # Capture content hash
     )
@@ -42,13 +42,13 @@ HASH_IN_JSON_DIFF_PATTERN = re.compile(r"""
 
 #+- followed by the hash with no space for the most common algorithms
 HASH_FILE_CHANGE_PATTERN = re.compile(r"""
-    ^\s*[-+]                              # Line starts with optional whitespace, then - or +
+    ^\s*[-+]                            # Line starts with optional whitespace, then - or +
     [a-fA-F0-9]{32,}                    # Match a hash (e.g., MD5, SHA1, SHA256)
 """, re.VERBOSE)
 
 PARTIAL_POM_CHUNK_PATTERN = re.compile(r"""
-    <                # Opening angle bracket
-    (?:              # Non-capturing group for common POM tags
+    <                                   # Opening angle bracket
+    (?:                                 # Non-capturing group for common POM tags
         project |
         modelVersion |
         groupId |
@@ -69,32 +69,31 @@ PARTIAL_POM_CHUNK_PATTERN = re.compile(r"""
         goals |
         goal
         # properties |
-    )    \b               # Word boundary (so we don't match e.g., "artifactIdentifier")
-    [^>]*>           # Anything until closing '>'
+    )\b                                 # Word boundary (so we don't match e.g., "artifactIdentifier")
+    [^>]*>                              # Anything until closing '>'
 """, re.VERBOSE | re.IGNORECASE)
 
 COPYRIGHT_CHANGE_PATTERN = re.compile(r"""
-    ^\s*[-+]                       # Line starts with optional whitespace, then - or +
-    \s*                            # Optional whitespace
-    Copyright\s+                   # Match 'Copyright' with space
+    ^\s*[-+]                            # Line starts with optional whitespace, then - or +
+    \s*                                 # Optional whitespace
+    Copyright                           # Match 'Copyright'
 """, re.VERBOSE | re.IGNORECASE)
+
+
 
 # Regex for diff line with +- in an xml file
 # With capture group for the property name
 XML_DIFF_LINE_PATTERN = re.compile(r"""
     ^\s*(?P<sign>[+-])                  # Line starts with optional whitespace, then - or +
-    .*?                                 # Non-greedy match up to the tag
+    [^<]*                               # Match any characters until <
     <(?P<tag_name>[\w\-]+)              # Capture the tag name (e.g., <property>)
 """, re.VERBOSE)
 
 GENERATED_INTERNAL_ID_PATTERN = re.compile(r"""
     ^\s*[-+]                            # Line starts with optional whitespace, then - or +
     .*?                                 # Non-greedy match
-    \$[a-zA-Z_]+\$\d+                     # Match a generated internal ID
+    \$[a-zA-Z_]+\$\d+                   # Match a generated internal ID
 """, re.VERBOSE)
-
-IS_DIFF_LINE_PATTERN = re.compile(r"^\s*[-+]")
-
 
 def analyze_pom_diff(diff: str):
     """
@@ -139,6 +138,9 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
         if diff["comments"] == ["Ordering differences only"]:
             report += "Line ordering differences only, skipping analysis\n"
             return {constants.LINE_ORDERING_CHANGE}, report
+        if diff["comments"] == ["Line-ending differences only"]:
+            report += "Line-ending differences only, skipping analysis\n"
+            return {constants.LINE_ENDING_CHANGE}, report
 
     change_types = set()
     unified_diff = diff["unified_diff"]
@@ -160,7 +162,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
     }
 
     for line in unified_diff.splitlines():
-        if not IS_DIFF_LINE_PATTERN.match(line):
+        if not (line.strip() and line.strip()[0] in '+-'):
             # Skip lines that are not relevant
             continue
         for pattern, (change_type, message) in diff_line_analysis.items():
