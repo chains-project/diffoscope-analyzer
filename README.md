@@ -7,10 +7,12 @@ This project aims to help classify and create aggregate data for collections of 
 Set up the python environment.
 
 ```bash
-source pythonvenv/bin/activate
+python -m venv pythonvenv
+source pythonvenv/bin/activate  # On Unix/macOS
+pip install -r requirements.txt
 ```
 
-Run the program in the directory with your diffoscope files.
+Run the program with the directory of your diffoscope files as a parameter.
 
 ```bash
 python diff-analyser.py <your-directory-with-diffoscope-files>
