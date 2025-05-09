@@ -28,7 +28,7 @@ except ImportError:
     print("Error: Analyzers modules not found.  Please ensure they are in the 'analyzers' subdirectory.")
     sys.exit(1)
 
-MAX_DIFFOSCOPE_FILES = 1000
+MAX_DIFFOSCOPE_FILES = 10000
 
 def gather_x_diffoscope_files(root_dir: Path, max_files) -> list[Path]:
     """
@@ -37,12 +37,24 @@ def gather_x_diffoscope_files(root_dir: Path, max_files) -> list[Path]:
     if not root_dir.is_dir():
         raise ValueError(f"Provided path {root_dir} is not a directory.")
 
-    # Get the list of files to include from oss_rebuild_files module
-    oss_rebuild_files_list = oss_rebuild_files.failed_normalization_files
+    exclude_dirs = [
+        "oss-rebuild",
+        "oss-rebuild-improved",
+        "oss-rebuild-improved-2",
+        "rebuild",
+        "reference"
+    ]
 
-    # Temporary filter for oss-rebuild-improved-2
+    print("Searching for diffoscope files...")
     all_files = list(root_dir.rglob('*.diffoscope.json'))
-    filtered_files = [f for f in all_files if 'oss-rebuild-improved-2' not in str(f) and f.name in oss_rebuild_files_list]
+
+    # Filter out files in excluded directories
+    filtered_files = [
+        f for f in all_files
+        if not any(excluded in f.parts for excluded in exclude_dirs)
+        and f.name in oss_rebuild_files.failed_normalization_files
+    ]
+
     return filtered_files[:max_files]
 
 
@@ -158,7 +170,7 @@ if __name__ == "__main__":
     output_dir = Path("output")
     output_dir.mkdir(exist_ok=True)
 
-    files = gather_x_diffoscope_files(Path(sys.argv[1]), MAX_DIFFOSCOPE_FILES)
+    # files = gather_x_diffoscope_files(Path(sys.argv[1]), MAX_DIFFOSCOPE_FILES)
 
     # # Load normalization results
     # with open("tmp/oss_rebuild_improved_2_result.txt", "r") as f:
