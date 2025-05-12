@@ -16,6 +16,14 @@ TIMESTAMP_DIFF_PATTERN = re.compile(r"""
         (?P<utc_ts>                    # UTC timestamp with optional timezone
             \d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?:UTC|[+-]\d{4})
         )
+        |
+        (?P<compact_ts>            # Compact timestamp (from PDF)
+            \d{14}[+-]\d{2}
+        )
+        |
+        (?P<jaxb_ts>                # Exlipse JAXB-style date
+            \d{4}\.\d{2}\.\d{2}\s+at\s+\d{2}:\d{2}:\d{2}\s+(?:AM|PM)\s+[A-Z]{2,4}
+        )
     )
 """, re.VERBOSE)
 
@@ -83,8 +91,6 @@ COPYRIGHT_CHANGE_PATTERN = re.compile(r"""
     Copyright                           # Match 'Copyright'
 """, re.VERBOSE | re.IGNORECASE)
 
-
-
 # Regex for diff line with +- in an xml file
 # With capture group for the property name
 XML_DIFF_LINE_PATTERN = re.compile(r"""
@@ -97,6 +103,13 @@ GENERATED_INTERNAL_ID_PATTERN = re.compile(r"""
     ^\s*[-+]                            # Line starts with optional whitespace, then - or +
     .*?                                 # Non-greedy match
     \$[a-zA-Z_]+\$\d+                   # Match a generated internal ID
+""", re.VERBOSE)
+
+MODULE_INFO_JAVA_VERSION_PATTERN = re.compile(r"""
+    ^\s*[-+]                            # Line starts with optional whitespace, then - or +
+    \s+
+    \#\d+\s+=\s+Utf8\s+                 # Match a module-info line with UTF-8
+    \d+(?:\.\d+){0,2}                  # Match a Java version string (e.g., "1.8.0")
 """, re.VERBOSE)
 
 def analyze_pom_diff(diff: str):
@@ -164,12 +177,17 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
         COPYRIGHT_CHANGE_PATTERN: (constants.COPYRIGHT_CHANGE, "Copyright change detected"),
         GENERATED_INTERNAL_ID_PATTERN: (constants.GENERATED_ID_CHANGE, "Generated internal ID detected"),
     }
+    if "module-info" in unified_diff:
+        diff_line_analysis.update({
+            MODULE_INFO_JAVA_VERSION_PATTERN: (constants.JAVA_VERSION_CHANGE, "Java version change detected"),
+        })
 
     for line in unified_diff.splitlines():
         if not (line.strip() and line.strip()[0] in '+-'):
             # Skip lines that are not relevant
             continue
         for pattern, (change_type, message) in diff_line_analysis.items():
+
             if pattern.search(line):
                 change_types.add(change_type)
                 report += f"{message}: {line}\n"

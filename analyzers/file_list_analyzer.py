@@ -4,9 +4,9 @@ import constants
 FILE_LIST_PATTERN = re.compile(r"""
     ^(?P<sign>[+-])                       # Diff sign
     (?P<perm>[drwx\-]{10})\s+            # Permissions
-    \d+\s+                                # Hard link count (ignored)
-    (?P<owner>\S+)\s+\(\d+\)\s+          # Owner (with UID)
-    (?P<group>\S+)\s+\(\d+\)\s+          # Group (with GID)
+    \d+\s+                               # Hard link count (ignored)
+    (?P<owner>\S+)\s+(?:\(\d+\)\s+)?     # Owner (with optional UID)
+    (?P<group>\S+)\s+(?:\(\d+\)\s+)?     # Group (with optional GID)
     (?P<size>\d+)\s+                     # Size in bytes
     (?P<timestamp>\d{4}-\d{2}-\d{2}      # Date YYYY-MM-DD
     \s+\d{2}:\d{2}:\d{2}\.\d+)           # Time HH:MM:SS.micro

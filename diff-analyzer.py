@@ -37,22 +37,30 @@ def gather_x_diffoscope_files(root_dir: Path, max_files) -> list[Path]:
     if not root_dir.is_dir():
         raise ValueError(f"Provided path {root_dir} is not a directory.")
 
+    print("Searching for diffoscope files...")
+
     exclude_dirs = [
         "oss-rebuild",
         "oss-rebuild-improved",
-        "oss-rebuild-improved-2",
+         # "oss-rebuild-improved-2",
         "rebuild",
         "reference"
     ]
 
-    print("Searching for diffoscope files...")
-    all_files = list(root_dir.rglob('*.diffoscope.json'))
+    get_non_oss_rebuilt_files = False
+
+    if get_non_oss_rebuilt_files:
+        exclude_dirs.append("oss-rebuild-improved-2")
+        all_files = list(root_dir.rglob('*.diffoscope.json'))
+    else:
+        all_files = list(root_dir.rglob('**/oss-rebuild-improved-2/*.diffoscope.json'))
+
 
     # Filter out files in excluded directories
     filtered_files = [
         f for f in all_files
         if not any(excluded in f.parts for excluded in exclude_dirs)
-        and f.name in oss_rebuild_files.failed_normalization_files
+        and f.name in oss_rebuild_files.failed_normalization_files # Use only files that failed oss rebuild normalization
     ]
 
     print(f"Found {len(filtered_files)} diffoscope files.")
@@ -210,14 +218,14 @@ if __name__ == "__main__":
 
     print("Combined types of changes:")
     for change_types, files in sorted(combined_change_types.items(), key=lambda item: len(item[1]), reverse=True):
-        percentage = (len(files) / MAX_DIFFOSCOPE_FILES) * 100
+        percentage = (len(files) / file_count) * 100
         sorted_change_types = sorted(change_types)
         change_types_str = ', '.join(sorted_change_types)
         print(f"\n{change_types_str}: {len(files):,} occurrences ({percentage:.2f}%)")
 
     print("\nSimple types of changes:")
     for change_type, files in sorted(simple_change_types.items(), key=lambda item: len(item[1]), reverse=True):
-        percentage = (len(files) / MAX_DIFFOSCOPE_FILES) * 100
+        percentage = (len(files) / file_count) * 100
         print(f"\n{change_type}: {len(files):,} occurrences ({percentage:.2f}%)")
 
 
