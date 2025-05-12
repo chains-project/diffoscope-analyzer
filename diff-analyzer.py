@@ -55,6 +55,8 @@ def gather_x_diffoscope_files(root_dir: Path, max_files) -> list[Path]:
         and f.name in oss_rebuild_files.failed_normalization_files
     ]
 
+    print(f"Found {len(filtered_files)} diffoscope files.")
+
     return filtered_files[:max_files]
 
 
