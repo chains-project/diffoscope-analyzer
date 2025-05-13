@@ -28,7 +28,7 @@ except ImportError:
     print("Error: Analyzers modules not found.  Please ensure they are in the 'analyzers' subdirectory.")
     sys.exit(1)
 
-MAX_DIFFOSCOPE_FILES = 10000
+MAX_DIFFOSCOPE_FILES = 1000
 
 def gather_x_diffoscope_files(root_dir: Path, max_files) -> list[Path]:
     """

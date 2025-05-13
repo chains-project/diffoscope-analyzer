@@ -158,6 +158,9 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
         if diff["comments"] == ["Line-ending differences only"]:
             report += "Line-ending differences only, skipping analysis\n"
             return {constants.LINE_ENDING_CHANGE}, report
+        if "js-beautify" in diff["source1"] or "js-beautify" in diff["source2"]:
+            report += "js-beautify detected, skipping analysis\n"
+            return {constants.JS_BEAUTIFY_CHANGE}, report
 
     change_types = set()
     unified_diff = diff["unified_diff"]

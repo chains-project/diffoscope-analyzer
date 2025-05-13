@@ -24,7 +24,6 @@ def analyze_file_list(diff: dict) -> tuple[set[str],str]:
     permission_change = False
     owner_change = False
     group_change = False
-    number_of_files_change = False
     file_content_or_size_change = False
     file_reordered_change = False
     file_removed_change = False
@@ -113,8 +112,6 @@ def analyze_file_list(diff: dict) -> tuple[set[str],str]:
         change_types.add(constants.OWNER_CHANGE)
     if group_change:
         change_types.add(constants.GROUP_CHANGE)
-    if number_of_files_change:
-        change_types.add(constants.NUMBER_OF_FILES_CHANGE)
     if file_content_or_size_change:
         change_types.add(constants.FILE_CONTENT_OR_SIZE_CHANGE)
     if file_reordered_change:
