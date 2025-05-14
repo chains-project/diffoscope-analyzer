@@ -106,15 +106,22 @@ GENERATED_INTERNAL_ID_PATTERN = re.compile(r"""
 """, re.VERBOSE)
 
 MODULE_INFO_JAVA_VERSION_PATTERN = re.compile(r"""
-    ^\s*[-+]                            # Line starts with optional whitespace, then - or +
+    ^\s*[-+]                           # Line starts with optional whitespace, then - or +
     \s+
-    \#\d+\s+=\s+Utf8\s+                 # Match a module-info line with UTF-8
+    \#\d+\s+=\s+Utf8\s+                # Match a module-info line with UTF-8
     \d+(?:\.\d+){0,2}                  # Match a Java version string (e.g., "1.8.0")
 """, re.VERBOSE)
 
 BUILD_METADATA_PATTERN = re.compile(r"""
-    ^\s*[-+]                                # Line starts with optional whitespace and a - or +
+    ^\s*[-+]                                      # Line starts with optional whitespace and a - or +
     (?P<key>Bnd-LastModified|Build-Jdk|Built-By)  # Match only these three keys
+""", re.VERBOSE)
+
+PATH_DIFF_PATTERN = re.compile(r"""
+    (?P<path>
+        /(?:[\w\-]+/){2,}                     # Starts with / and at least two path segments
+        (?P<tail>[\w\-.]+)                    # Final segment
+    )
 """, re.VERBOSE)
 
 def analyze_pom_diff(diff: str):
@@ -155,7 +162,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
         report += "Jandex diff detected, skipping analysis\n"
         return {constants.JANDEX_CHANGE}, report
     if "js-beautify" in diff["source1"] or "js-beautify" in diff["source2"]:
-        report += "js-beautify detected, skipping analysis\n"
+        report += "js-beautify changes detected, skipping analysis\n"
         return {constants.JS_BEAUTIFY_CHANGE}, report
 
     if "comments" in diff and diff["comments"]:
@@ -194,6 +201,31 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
         diff_line_analysis.update({
             MODULE_INFO_JAVA_VERSION_PATTERN: (constants.JAVA_VERSION_CHANGE, "Java version change detected"),
         })
+
+    removed_paths: dict[str,re.Match] = {}
+    added_paths: dict[str,re.Match] = {}
+
+    for line in unified_diff.splitlines():
+        if not line.startswith(('-', '+')):
+            continue
+
+        matches = PATH_DIFF_PATTERN.finditer(line)
+        if not matches:
+            continue
+
+        for match in matches:
+            if line.startswith('-'):
+                removed_paths[match.group("tail")] = match
+            elif line.startswith('+'):
+                added_paths[match.group("tail")] = match
+
+    if removed_paths or added_paths:
+        for tail, removed_match in removed_paths.items():
+            added_match = added_paths.get(tail)
+            if added_match and removed_match.group("path") != added_match.group("path"):
+                # If the path exists in both, but the match is different
+                report += f"Path change detected: {removed_match["path"]} -> {added_match["path"]}\n"
+                change_types.add(constants.PATH_CHANGE)
 
     for line in unified_diff.splitlines():
         if not (line.strip() and line.strip()[0] in '+-'):
