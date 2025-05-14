@@ -112,6 +112,11 @@ MODULE_INFO_JAVA_VERSION_PATTERN = re.compile(r"""
     \d+(?:\.\d+){0,2}                  # Match a Java version string (e.g., "1.8.0")
 """, re.VERBOSE)
 
+BUILD_METADATA_PATTERN = re.compile(r"""
+    ^\s*[-+]                                # Line starts with optional whitespace and a - or +
+    (?P<key>Bnd-LastModified|Build-Jdk|Built-By)  # Match only these three keys
+""", re.VERBOSE)
+
 def analyze_pom_diff(diff: str):
     """
     Analyze what has been added and removed in the Pom file
@@ -149,6 +154,9 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
     if "jandex" in diff["source1"] or "jandex" in diff["source2"]:
         report += "Jandex diff detected, skipping analysis\n"
         return {constants.JANDEX_CHANGE}, report
+    if "js-beautify" in diff["source1"] or "js-beautify" in diff["source2"]:
+        report += "js-beautify detected, skipping analysis\n"
+        return {constants.JS_BEAUTIFY_CHANGE}, report
 
     if "comments" in diff and diff["comments"]:
         print (f"Comment: {diff['comments']}")
@@ -158,9 +166,6 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
         if diff["comments"] == ["Line-ending differences only"]:
             report += "Line-ending differences only, skipping analysis\n"
             return {constants.LINE_ENDING_CHANGE}, report
-        if "js-beautify" in diff["source1"] or "js-beautify" in diff["source2"]:
-            report += "js-beautify detected, skipping analysis\n"
-            return {constants.JS_BEAUTIFY_CHANGE}, report
 
     change_types = set()
     unified_diff = diff["unified_diff"]
@@ -180,6 +185,11 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
         COPYRIGHT_CHANGE_PATTERN: (constants.COPYRIGHT_CHANGE, "Copyright change detected"),
         GENERATED_INTERNAL_ID_PATTERN: (constants.GENERATED_ID_CHANGE, "Generated internal ID detected"),
     }
+    if "MANIFEST" in diff["source1"] or "MANIFEST" in diff["source2"]:
+        diff_line_analysis.update({
+            BUILD_METADATA_PATTERN: (constants.BUILD_METADATA_CHANGE, "Build metadata change detected"),
+        })
+
     if "module-info" in unified_diff:
         diff_line_analysis.update({
             MODULE_INFO_JAVA_VERSION_PATTERN: (constants.JAVA_VERSION_CHANGE, "Java version change detected"),

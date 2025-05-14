@@ -25,6 +25,7 @@ GENERATED_ID_CHANGE = "generated_id_change"
 LINE_ENDING_CHANGE = "line_ending_change"
 JAVA_VERSION_CHANGE = "java_version_change"
 JS_BEAUTIFY_CHANGE = "js_beautify_change"
+BUILD_METADATA_CHANGE = "build_metadata_change"
 
 # Special case for unknown changes
 UNKNOWN_CHANGE = "unknown_change"
