@@ -1,5 +1,7 @@
 import re
 import constants
+from collections import Counter
+
 
 
 # We want to detect different types of timestamps on different formats
@@ -23,6 +25,18 @@ TIMESTAMP_DIFF_PATTERN = re.compile(r"""
         |
         (?P<jaxb_ts>                # Exlipse JAXB-style date
             \d{4}\.\d{2}\.\d{2}\s+at\s+\d{2}:\d{2}:\d{2}\s+(?:AM|PM)\s+[A-Z]{2,4}
+        )
+        |
+        (?P<manifest_build_ts>
+            [+-]Bnd-LastModified:\s+\d{13}
+        )
+        |
+        (?P<dot_date_am_pm_ts>
+            \d{4}\.\d{2}\.\d{2}              # Date as YYYY.MM.DD
+            \s+at\s+                         # ' at ' with spaces
+            \d{2}:\d{2}:\d{2}                # Time: HH:MM:SS
+            \s+(?:AM|PM)                     # AM or PM
+            \s+[A-Z]{2,4}                    # Timezone (e.g., UTC)
         )
     )
 """, re.VERBOSE)
@@ -124,6 +138,12 @@ PATH_DIFF_PATTERN = re.compile(r"""
     )
 """, re.VERBOSE)
 
+GIT_COMMIT_CHANGE_PATTERN = re.compile(r"""
+    [-+](?:git\.commit\.id\.full=[0-9a-fA-F]{40}
+    |
+    git\.commit\.id\.abbrev=[0-9a-fA-F]{7})
+""", re.VERBOSE)
+
 def analyze_pom_diff(diff: str):
     """
     Analyze what has been added and removed in the Pom file
@@ -153,6 +173,69 @@ def analyze_pom_diff(diff: str):
             report += f"Tag <{tag}> has been removed\n"
     return report
 
+
+def extract_words(text):
+    return re.findall(r'\b[\w\d$._-]+\b', text)
+
+def is_reordered_words(line1, line2):
+    """Check if two lines have the same words, different order."""
+    words1 = extract_words(line1)
+    words2 = extract_words(line2)
+    return Counter(words1) == Counter(words2) and words1 != words2
+
+def detect_word_reordering(unified_diff):
+
+    removed_lines = []
+    added_lines = []
+    results: list[tuple[str, str]] = []
+
+    prev_type = None
+
+    splitlines = unified_diff.splitlines()
+    MAX_NUMBER_OF_LINES = 10000
+    if len(splitlines) > MAX_NUMBER_OF_LINES: # This is too slow to be practical otherwise
+        return []
+    for line in splitlines:
+        if line.startswith('-'):
+            line_type = '-'
+        elif line.startswith('+'):
+            line_type = '+'
+        else:
+            # On neutral line, flush block
+            results.extend(compare_block_for_reordered_words(removed_lines, added_lines))
+            removed_lines.clear()
+            added_lines.clear()
+            prev_type = None
+            continue
+
+        # On direction switch, flush block
+        if prev_type == '+' and line_type != prev_type:
+            results.extend(compare_block_for_reordered_words(removed_lines, added_lines))
+            removed_lines.clear()
+            added_lines.clear()
+
+        content = line[1:].strip()
+        if line_type == '-':
+            removed_lines.append(content)
+        else:
+            added_lines.append(content)
+
+        prev_type = line_type
+
+    # Final flush
+    results.extend(compare_block_for_reordered_words(removed_lines, added_lines))
+    return results
+
+
+def compare_block_for_reordered_words(removed, added):
+    """Return reordered line pairs based on word reordering."""
+    reordered = []
+    for rem_line in removed:
+        for add_line in added:
+            if is_reordered_words(rem_line, add_line):
+                reordered.append((rem_line, add_line))
+                break  # Avoid duplicate matches
+    return reordered
 
 def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
     report = f"Source 1: {diff['source1']}\n"
@@ -191,6 +274,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
         HASH_FILE_CHANGE_PATTERN: (constants.HASH_FILE_CHANGE, "Hash file change detected"),
         COPYRIGHT_CHANGE_PATTERN: (constants.COPYRIGHT_CHANGE, "Copyright change detected"),
         GENERATED_INTERNAL_ID_PATTERN: (constants.GENERATED_ID_CHANGE, "Generated internal ID detected"),
+        GIT_COMMIT_CHANGE_PATTERN: (constants.GIT_COMMIT_CHANGE, "Git commit change detected"),
     }
     if "MANIFEST" in diff["source1"] or "MANIFEST" in diff["source2"]:
         diff_line_analysis.update({
@@ -205,13 +289,17 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
     removed_paths: dict[str,re.Match] = {}
     added_paths: dict[str,re.Match] = {}
 
+    word_reordering_result = detect_word_reordering(unified_diff)
+    if word_reordering_result:
+        for (rem_line, add_line) in word_reordering_result:
+            report += f"Reordered words: {rem_line} -> {add_line}\n"
+            change_types.add(constants.WORD_ORDERING_CHANGE)
+
     for line in unified_diff.splitlines():
         if not line.startswith(('-', '+')):
             continue
 
         matches = PATH_DIFF_PATTERN.finditer(line)
-        if not matches:
-            continue
 
         for match in matches:
             if line.startswith('-'):
@@ -224,7 +312,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
             added_match = added_paths.get(tail)
             if added_match and removed_match.group("path") != added_match.group("path"):
                 # If the path exists in both, but the match is different
-                report += f"Path change detected: {removed_match["path"]} -> {added_match["path"]}\n"
+                report += f"Path change detected: {removed_match['path']} -> {added_match['path']}\n"
                 change_types.add(constants.PATH_CHANGE)
 
     for line in unified_diff.splitlines():
@@ -236,6 +324,6 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
             if pattern.search(line):
                 change_types.add(change_type)
                 report += f"{message}: {line}\n"
-                break  # Move to the next line once a match is found
+                # TODO: test time without break # break  # Move to the next line once a match is found
 
     return (change_types, report)

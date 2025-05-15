@@ -27,6 +27,8 @@ JAVA_VERSION_CHANGE = "java_version_change"
 JS_BEAUTIFY_CHANGE = "js_beautify_change"
 BUILD_METADATA_CHANGE = "build_metadata_change"
 PATH_CHANGE = "path_change"
+WORD_ORDERING_CHANGE = "word_ordering_change"
+GIT_COMMIT_CHANGE = "git_commit_change"
 
 # Special case for unknown changes
 UNKNOWN_CHANGE = "unknown_change"
