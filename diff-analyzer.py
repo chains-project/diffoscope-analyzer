@@ -230,7 +230,7 @@ if __name__ == "__main__":
 
 
     elapsed_time = time.time() - time_before
-    print(f"\nWent through {file_count} files. Elapsed time: {elapsed_time:.2f} seconds, average time per file: {elapsed_time / MAX_DIFFOSCOPE_FILES * 1000:.1f} milliseconds")
+    print(f"\nWent through {file_count} files. Elapsed time: {elapsed_time:.2f} seconds, average time per file: {elapsed_time / file_count * 1000:.1f} milliseconds")
 
     print("--------------------------")
     files_with_unknown_diffs = simple_change_types.get(constants.UNKNOWN_CHANGE, [])

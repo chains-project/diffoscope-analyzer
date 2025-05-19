@@ -26,9 +26,11 @@ LINE_ENDING_CHANGE = "line_ending_change"
 JAVA_VERSION_CHANGE = "java_version_change"
 JS_BEAUTIFY_CHANGE = "js_beautify_change"
 BUILD_METADATA_CHANGE = "build_metadata_change"
+DEPENDENCY_METADATA_CHANGE = "dependency_metadata_change"
 PATH_CHANGE = "path_change"
 WORD_ORDERING_CHANGE = "word_ordering_change"
 GIT_COMMIT_CHANGE = "git_commit_change"
+GIT_PROPERTIES_CHANGE = "git_properties_change"
 
 # Special case for unknown changes
 UNKNOWN_CHANGE = "unknown_change"

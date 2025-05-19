@@ -3,7 +3,6 @@ import constants
 from collections import Counter
 
 
-
 # We want to detect different types of timestamps on different formats
 TIMESTAMP_DIFF_PATTERN = re.compile(r"""
     ^\s*[-+].*?(
@@ -44,7 +43,6 @@ TIMESTAMP_DIFF_PATTERN = re.compile(r"""
             \d{2}(\\{1,2}:)\d{2}(\\{1,2}:)\d{2}   # Time part, with 1 or 2 backslashes before colons
             [+-]\d{4}                             # Timezone offset
         )
-)
     )
 """, re.VERBOSE)
 
@@ -287,6 +285,12 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
         diff_line_analysis.update({
             BUILD_METADATA_PATTERN: (constants.BUILD_METADATA_CHANGE, "Build metadata change detected"),
         })
+    if "DEPENDENCIES" in diff["source1"] or "DEPENDENCIES" in diff["source2"]:
+        change_types.add(constants.DEPENDENCY_METADATA_CHANGE)
+        report += "Dependency metadata diff detected.\n"
+    if "git.properties" in diff["source1"] or "git.properties" in diff["source2"]:
+        change_types.add(constants.GIT_PROPERTIES_CHANGE)
+        report += "Git properties diff detected.\n"
 
     if "module-info" in unified_diff:
         diff_line_analysis.update({
@@ -296,7 +300,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
     removed_paths: dict[str,re.Match] = {}
     added_paths: dict[str,re.Match] = {}
 
-    if diff["has_internal_linenos"]: # High risk of false positives
+    if "has_internal_linenos" in diff and diff["has_internal_linenos"]: # High risk of false positives
         word_reordering_result = []
     else:
         word_reordering_result = detect_word_reordering(unified_diff)
