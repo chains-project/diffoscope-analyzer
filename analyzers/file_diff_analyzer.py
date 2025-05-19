@@ -43,6 +43,11 @@ TIMESTAMP_DIFF_PATTERN = re.compile(r"""
             \d{2}(\\{1,2}:)\d{2}(\\{1,2}:)\d{2}   # Time part, with 1 or 2 backslashes before colons
             [+-]\d{4}                             # Timezone offset
         )
+        |
+        (?P<month_day_year_ts>              # Format: "Jan 29, 2025 (03:39:58 UTC)" or "Jun 07, 2022 (03:47:13 EDT)"
+            [A-Za-z]{3}\s+\d{1,2},\s+\d{4}        # Date part: "Jan 29, 2025"
+            \s+\(\d{2}:\d{2}:\d{2}\s+[A-Z]{2,4}\) # Time part with any timezone: "(03:39:58 UTC)" or "(03:47:13 EDT)"
+        )
     )
 """, re.VERBOSE)
 
@@ -79,6 +84,7 @@ HASH_FILE_CHANGE_PATTERN = re.compile(r"""
 
 PARTIAL_POM_CHUNK_PATTERN = re.compile(r"""
     <                                   # Opening angle bracket
+    /?                                  # Optional closing slash
     (?:                                 # Non-capturing group for common POM tags
         project |
         modelVersion |
@@ -106,7 +112,9 @@ PARTIAL_POM_CHUNK_PATTERN = re.compile(r"""
 
 COPYRIGHT_CHANGE_PATTERN = re.compile(r"""
     ^\s*[-+]                            # Line starts with optional whitespace, then - or +
+    \#?                                 # Optional #
     \s*                                 # Optional whitespace
+    (?:<strong>|<p>)?                   # Optional HTML tags
     Copyright                           # Match 'Copyright'
 """, re.VERBOSE | re.IGNORECASE)
 
@@ -121,7 +129,7 @@ XML_DIFF_LINE_PATTERN = re.compile(r"""
 GENERATED_INTERNAL_ID_PATTERN = re.compile(r"""
     ^\s*[-+]                            # Line starts with optional whitespace, then - or +
     .*?                                 # Non-greedy match
-    \$[a-zA-Z_]+\$\d+                   # Match a generated internal ID
+    \$[a-zA-Z_]+\$\d+                   # Match a generated internal ID "$something$xx"
 """, re.VERBOSE)
 
 MODULE_INFO_JAVA_VERSION_PATTERN = re.compile(r"""
@@ -133,7 +141,7 @@ MODULE_INFO_JAVA_VERSION_PATTERN = re.compile(r"""
 
 BUILD_METADATA_PATTERN = re.compile(r"""
     ^\s*[-+]                                      # Line starts with optional whitespace and a - or +
-    (?P<key>Bnd-LastModified|Build-Jdk|Built-By)  # Match only these three keys
+    (?P<key>Bnd-LastModified|Build-Jdk|Built-By)  # Match only these keys
 """, re.VERBOSE)
 
 PATH_DIFF_PATTERN = re.compile(r"""
@@ -144,9 +152,15 @@ PATH_DIFF_PATTERN = re.compile(r"""
 """, re.VERBOSE)
 
 GIT_COMMIT_CHANGE_PATTERN = re.compile(r"""
-    [-+](?:git\.commit\.id\.full=[0-9a-fA-F]{40}
+    [-+]
+    (?:git\.commit\.id\.full=[0-9a-fA-F]{40}
     |
-    git\.commit\.id\.abbrev=[0-9a-fA-F]{7})
+    git\.commit\.id\.abbrev=[0-9a-fA-F]{7}
+    |
+    Git-Revision:\s+[0-9a-fA-F]{40}
+    |
+    Scm-Revision:\s+[0-9a-fA-F]{40}
+    )
 """, re.VERBOSE)
 
 def analyze_pom_diff(diff: str):
@@ -252,6 +266,9 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
     if "js-beautify" in diff["source1"] or "js-beautify" in diff["source2"]:
         report += "js-beautify changes detected, skipping analysis\n"
         return {constants.JS_BEAUTIFY_CHANGE}, report
+    if ".class" in diff["source1"] or ".class" in diff["source2"]:
+        report += "Class file diff detected, skipping analysis\n"
+        return {constants.CLASS_FILE_CHANGE}, report
 
     if "comments" in diff and diff["comments"]:
         print (f"Comment: {diff['comments']}")
@@ -278,7 +295,6 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
         HASH_IN_JSON_DIFF_PATTERN: (constants.HASH_IN_JSON_CHANGE, "Hash in JSON diff detected"),
         HASH_FILE_CHANGE_PATTERN: (constants.HASH_FILE_CHANGE, "Hash file change detected"),
         COPYRIGHT_CHANGE_PATTERN: (constants.COPYRIGHT_CHANGE, "Copyright change detected"),
-        GENERATED_INTERNAL_ID_PATTERN: (constants.GENERATED_ID_CHANGE, "Generated internal ID detected"),
         GIT_COMMIT_CHANGE_PATTERN: (constants.GIT_COMMIT_CHANGE, "Git commit change detected"),
     }
     if "MANIFEST" in diff["source1"] or "MANIFEST" in diff["source2"]:
@@ -291,6 +307,11 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
     if "git.properties" in diff["source1"] or "git.properties" in diff["source2"]:
         change_types.add(constants.GIT_PROPERTIES_CHANGE)
         report += "Git properties diff detected.\n"
+    if ".class" not in diff["source1"] and ".class" not in diff["source2"]: # This check is for java files. We get a lot of false positives on class files
+        diff_line_analysis.update({
+            GENERATED_INTERNAL_ID_PATTERN: (constants.GENERATED_ID_CHANGE, "Generated internal ID detected"),
+        })
+
 
     if "module-info" in unified_diff:
         diff_line_analysis.update({
@@ -300,7 +321,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
     removed_paths: dict[str,re.Match] = {}
     added_paths: dict[str,re.Match] = {}
 
-    if "has_internal_linenos" in diff and diff["has_internal_linenos"]: # High risk of false positives
+    if "has_internal_linenos" in diff and diff["has_internal_linenos"]: # High risk of false positives if the file has internal line numbers
         word_reordering_result = []
     else:
         word_reordering_result = detect_word_reordering(unified_diff)
