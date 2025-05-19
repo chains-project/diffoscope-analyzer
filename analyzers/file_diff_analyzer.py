@@ -38,6 +38,13 @@ TIMESTAMP_DIFF_PATTERN = re.compile(r"""
             \s+(?:AM|PM)                     # AM or PM
             \s+[A-Z]{2,4}                    # Timezone (e.g., UTC)
         )
+        |
+        (?P<flex_iso_with_backslash_ts>
+            \d{4}-\d{2}-\d{2}T                    # Date part
+            \d{2}(\\{1,2}:)\d{2}(\\{1,2}:)\d{2}   # Time part, with 1 or 2 backslashes before colons
+            [+-]\d{4}                             # Timezone offset
+        )
+)
     )
 """, re.VERBOSE)
 
@@ -289,7 +296,10 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
     removed_paths: dict[str,re.Match] = {}
     added_paths: dict[str,re.Match] = {}
 
-    word_reordering_result = detect_word_reordering(unified_diff)
+    if diff["has_internal_linenos"]: # High risk of false positives
+        word_reordering_result = []
+    else:
+        word_reordering_result = detect_word_reordering(unified_diff)
     if word_reordering_result:
         for (rem_line, add_line) in word_reordering_result:
             report += f"Reordered words: {rem_line} -> {add_line}\n"
