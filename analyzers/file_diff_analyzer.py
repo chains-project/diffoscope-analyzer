@@ -266,6 +266,10 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
     report = f"Source 1: {diff['source1']}\n"
     report += f"Source 2: {diff['source2']}\n"
 
+
+    if "has_internal_linenos" in diff and diff["has_internal_linenos"]: # High risk of false positives if the file has internal line numbers
+        report += "Probably a hexdump or other hard to parse file, skipping analysis\n"
+        return {constants.HEXDUMP_CHANGE}, report
     if "jandex" in diff["source1"] or "jandex" in diff["source2"]:
         report += "Jandex diff detected, skipping analysis\n"
         return {constants.JANDEX_CHANGE}, report
@@ -327,10 +331,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
     removed_paths: dict[str,re.Match] = {}
     added_paths: dict[str,re.Match] = {}
 
-    if "has_internal_linenos" in diff and diff["has_internal_linenos"]: # High risk of false positives if the file has internal line numbers
-        word_reordering_result = []
-    else:
-        word_reordering_result = detect_word_reordering(unified_diff)
+    word_reordering_result = detect_word_reordering(unified_diff)
     if word_reordering_result:
         for (rem_line, add_line) in word_reordering_result:
             report += f"Reordered words: {rem_line} -> {add_line}\n"
