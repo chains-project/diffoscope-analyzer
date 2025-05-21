@@ -32,6 +32,7 @@ WORD_ORDERING_CHANGE = "word_ordering_change"
 GIT_COMMIT_CHANGE = "git_commit_change"
 GIT_PROPERTIES_CHANGE = "git_properties_change"
 CLASS_FILE_CHANGE = "class_file_change"
+UNKNOWN_MANIFEST_CHANGE = "unknown_manifest_change"
 
 # Special case for unknown changes
 UNKNOWN_CHANGE = "unknown_change"

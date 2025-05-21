@@ -48,6 +48,12 @@ TIMESTAMP_DIFF_PATTERN = re.compile(r"""
             [A-Za-z]{3}\s+\d{1,2},\s+\d{4}        # Date part: "Jan 29, 2025"
             \s+\(\d{2}:\d{2}:\d{2}\s+[A-Z]{2,4}\) # Time part with any timezone: "(03:39:58 UTC)" or "(03:47:13 EDT)"
         )
+        |
+        (?P<iso_with_am_pm_ts>              # Format: "2025-01-31 23\\:24\\:19PM"
+            \d{4}-\d{2}-\d{2}                    # Date part: "2025-01-31"
+            \s+\d{2}(?:\\+:)\d{2}(?:\\+:)\d{2}   # Time part with escaped colons: "23\\:24\\:19"
+            (?:AM|PM)                            # AM/PM indicator
+        )
     )
 """, re.VERBOSE)
 
@@ -360,5 +366,10 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
                 change_types.add(change_type)
                 report += f"{message}: {line}\n"
                 # TODO: test time without break # break  # Move to the next line once a match is found
+
+    if not change_types and ("MANIFEST" in diff["source1"] or "MANIFEST" in diff["source2"]):
+        # If we have a manifest file and no other changes, we assume it's a manifest change
+        change_types.add(constants.UNKNOWN_MANIFEST_CHANGE)
+        report += "Unknown manifest file change detected\n"
 
     return (change_types, report)
