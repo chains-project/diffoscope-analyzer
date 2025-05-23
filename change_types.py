@@ -6,38 +6,85 @@ from typing import NewType
 ChangeType = NewType("ChangeType", str)
 
 # Zipinfo
-TIMESTAMP_CHANGE: ChangeType = "timestamp_change"
-PERMISSION_CHANGE: ChangeType = "permission_change"
-OWNER_CHANGE: ChangeType = "owner_change"
-GROUP_CHANGE: ChangeType = "group_change"
-NUMBER_OF_FILES_CHANGE: ChangeType = "number_of_files_change"
-FILE_CONTENT_CHANGE: ChangeType = "file_content_change"
-UNKNOWN_FILE_CONTENT_CHANGE: ChangeType = "unknown_file_content_change"
-FILE_REORDERED_CHANGE: ChangeType = "file_reordered_change"
-FILE_REMOVED_CHANGE: ChangeType = "file_removed_change"
-FILE_ADDED_CHANGE: ChangeType = "file_added_change"
+TIMESTAMP_CHANGE: ChangeType = ChangeType("timestamp_change")
+PERMISSION_CHANGE: ChangeType = ChangeType("permission_change")
+OWNER_CHANGE: ChangeType = ChangeType("owner_change")
+GROUP_CHANGE: ChangeType = ChangeType("group_change")
+NUMBER_OF_FILES_CHANGE: ChangeType = ChangeType("number_of_files_change")
+FILE_CONTENT_CHANGE: ChangeType = ChangeType("file_content_change")
+UNKNOWN_FILE_CONTENT_CHANGE: ChangeType = ChangeType("unknown_file_content_change")
+FILE_REORDERED_CHANGE: ChangeType = ChangeType("file_reordered_change")
+FILE_REMOVED_CHANGE: ChangeType = ChangeType("file_removed_change")
+FILE_ADDED_CHANGE: ChangeType = ChangeType("file_added_change")
 
-# Experimental file diff changes
-HASH_IN_XML_CHANGE: ChangeType = "hash_in_xml_change"
-HASH_IN_JSON_CHANGE: ChangeType = "hash_in_json_change"
-HASH_FILE_CHANGE: ChangeType = "hash_file_change"
-POM_CHANGE: ChangeType = "pom_change"
-COPYRIGHT_CHANGE: ChangeType = "copyright_change"
-JANDEX_CHANGE: ChangeType = "jandex_change"
-LINE_ORDERING_CHANGE: ChangeType = "line_ordering_change"
-GENERATED_ID_CHANGE: ChangeType = "generated_id_change"
-LINE_ENDING_CHANGE: ChangeType = "line_ending_change"
-JAVA_VERSION_CHANGE: ChangeType = "java_version_change"
-JS_BEAUTIFY_CHANGE: ChangeType = "js_beautify_change"
-BUILD_METADATA_CHANGE: ChangeType = "build_metadata_change"
-DEPENDENCY_METADATA_CHANGE: ChangeType = "dependency_metadata_change"
-PATH_CHANGE: ChangeType = "path_change"
-WORD_ORDERING_CHANGE: ChangeType = "word_ordering_change"
-GIT_COMMIT_CHANGE: ChangeType = "git_commit_change"
-GIT_PROPERTIES_CHANGE: ChangeType = "git_properties_change"
-CLASS_FILE_CHANGE: ChangeType = "class_file_change"
-UNKNOWN_MANIFEST_CHANGE: ChangeType = "unknown_manifest_change"
-HEXDUMP_CHANGE: ChangeType = "hexdump_change"
+# File diff changes
+HASH_IN_XML_CHANGE: ChangeType = ChangeType("hash_in_xml_change")
+HASH_IN_JSON_CHANGE: ChangeType = ChangeType("hash_in_json_change")
+HASH_FILE_CHANGE: ChangeType = ChangeType("hash_file_change")
+POM_CHANGE: ChangeType = ChangeType("pom_change")
+COPYRIGHT_CHANGE: ChangeType = ChangeType("copyright_change")
+JANDEX_CHANGE: ChangeType = ChangeType("jandex_change")
+LINE_ORDERING_CHANGE: ChangeType = ChangeType("line_ordering_change")
+GENERATED_ID_CHANGE: ChangeType = ChangeType("generated_id_change")
+LINE_ENDING_CHANGE: ChangeType = ChangeType("line_ending_change")
+JAVA_VERSION_CHANGE: ChangeType = ChangeType("java_version_change")
+JS_BEAUTIFY_CHANGE: ChangeType = ChangeType("js_beautify_change")
+BUILD_METADATA_CHANGE: ChangeType = ChangeType("build_metadata_change")
+DEPENDENCY_METADATA_CHANGE: ChangeType = ChangeType("dependency_metadata_change")
+PATH_CHANGE: ChangeType = ChangeType("path_change")
+WORD_ORDERING_CHANGE: ChangeType = ChangeType("word_ordering_change")
+GIT_COMMIT_CHANGE: ChangeType = ChangeType("git_commit_change")
+GIT_PROPERTIES_CHANGE: ChangeType = ChangeType("git_properties_change")
+CLASS_FILE_CHANGE: ChangeType = ChangeType("class_file_change")
+UNKNOWN_MANIFEST_CHANGE: ChangeType = ChangeType("unknown_manifest_change")
+HEXDUMP_CHANGE: ChangeType = ChangeType("hexdump_change")
+
+FILE_DIFF_CHANGES: set[ChangeType] = {
+    HASH_IN_XML_CHANGE,
+    HASH_IN_JSON_CHANGE,
+    HASH_FILE_CHANGE,
+    POM_CHANGE,
+    COPYRIGHT_CHANGE,
+    JANDEX_CHANGE,
+    LINE_ORDERING_CHANGE,
+    GENERATED_ID_CHANGE,
+    LINE_ENDING_CHANGE,
+    JAVA_VERSION_CHANGE,
+    JS_BEAUTIFY_CHANGE,
+    BUILD_METADATA_CHANGE,
+    DEPENDENCY_METADATA_CHANGE,
+    PATH_CHANGE,
+    WORD_ORDERING_CHANGE,
+    GIT_COMMIT_CHANGE,
+    GIT_PROPERTIES_CHANGE,
+    CLASS_FILE_CHANGE,
+    UNKNOWN_MANIFEST_CHANGE,
+    HEXDUMP_CHANGE,
+}
 
 # Special case for unknown changes
-UNKNOWN_CHANGE: ChangeType = "unknown_change"
+UNKNOWN_CHANGE: ChangeType = ChangeType("unknown_change")
+
+def validate_change_types():
+    """Validate that all change type constants under 'File diff changes' are included in FILE_DIFF_CHANGES.
+    This is to avoid forgetting to add a new change type to FILE_DIFF_CHANGES.
+    """
+    # Get all variables that are defined after the File diff changes comment
+    file_diff_section = False
+    change_types = set()
+
+    for name, value in globals().items():
+        if name == 'FILE_DIFF_CHANGES':
+            break
+        if name == 'HASH_IN_XML_CHANGE':  # First change type in the File diff changes section
+            file_diff_section = True
+        if file_diff_section and name.endswith('_CHANGE'):
+            change_types.add(value)
+
+    # Check if all change types are in FILE_DIFF_CHANGES
+    missing_types = change_types - FILE_DIFF_CHANGES
+    if missing_types:
+        raise ValueError(f"Missing change types in FILE_DIFF_CHANGES: {missing_types}")
+
+# Run validation when module is imported
+validate_change_types()

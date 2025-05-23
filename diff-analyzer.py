@@ -76,9 +76,11 @@ def analyze_diff_node(diff: dict) -> tuple[set[change_types.ChangeType],str]:
     if not change_categories:
         report += "Unknown changes.\n"
         change_categories.add(change_types.UNKNOWN_CHANGE)
-    elif len(change_categories) == 1 and change_types.FILE_CONTENT_CHANGE in change_categories:
-        change_categories.add(change_types.UNKNOWN_FILE_CONTENT_CHANGE)
-    change_categories.remove(change_types.FILE_CONTENT_CHANGE)
+    elif change_types.FILE_CONTENT_CHANGE in change_categories:
+        if not any(change_type in change_categories for change_type in change_types.FILE_DIFF_CHANGES):
+            change_categories.add(change_types.UNKNOWN_FILE_CONTENT_CHANGE)
+        change_categories.remove(change_types.FILE_CONTENT_CHANGE)
+
 
     return (change_categories, report)
 
