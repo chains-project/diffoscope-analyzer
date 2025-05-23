@@ -12,9 +12,9 @@ import oss_rebuild_files
 
 # Assuming constants.py is in the same directory or available in PYTHONPATH
 try:
-    import constants
+    import change_types
 except ImportError:
-    print("Error: constants.py not found. Please ensure it is in the same directory or in your PYTHONPATH.")
+    print("Error: change_types.py not found. Please ensure it is in the same directory or in your PYTHONPATH.")
     sys.exit(1)
 
 # Import analyzers (assuming they are in a subdirectory named 'analyzers')
@@ -25,7 +25,7 @@ try:
     from analyzers.file_diff_analyzer import analyze_file_diff
     from analyzers.zipnote_analyzer import analyze_zipnote
 except ImportError:
-    print("Error: Analyzers modules not found.  Please ensure they are in the 'analyzers' subdirectory.")
+    print("Error: Analyzers modules not found. Please ensure they are in the 'analyzers' subdirectory.")
     sys.exit(1)
 
 MAX_DIFFOSCOPE_FILES = 10000
@@ -68,19 +68,22 @@ def gather_x_diffoscope_files(root_dir: Path, max_files) -> list[Path]:
     return filtered_files[:max_files]
 
 
-def analyze_diff_node(diff: dict) -> tuple[set[str],str]:
-    change_types, report = analyze_diff_node_recursive(diff)
+def analyze_diff_node(diff: dict) -> tuple[set[change_types.ChangeType],str]:
+    change_categories, report = analyze_diff_node_recursive(diff)
 
-    for change_type in change_types:
+    for change_type in change_categories:
         print(f"Change type: {change_type}")
-    if not change_types:
+    if not change_categories:
         report += "Unknown changes.\n"
-        change_types.add(constants.UNKNOWN_CHANGE)
+        change_categories.add(change_types.UNKNOWN_CHANGE)
+    elif len(change_categories) == 1 and change_types.FILE_CONTENT_CHANGE in change_categories:
+        change_categories.add(change_types.UNKNOWN_FILE_CONTENT_CHANGE)
+    change_categories.remove(change_types.FILE_CONTENT_CHANGE)
 
-    return (change_types, report)
+    return (change_categories, report)
 
 
-def analyze_diff_node_recursive(diff: dict) -> tuple[set[str], str]:
+def analyze_diff_node_recursive(diff: dict) -> tuple[set[change_types.ChangeType], str]:
     """
     Recursively analyzes a diff node to determine types of changes and generate a report.
 
@@ -91,7 +94,7 @@ def analyze_diff_node_recursive(diff: dict) -> tuple[set[str], str]:
         Tuple[Set[str], str]: A set of unique change types and a concatenated report string.
     """
     report = "\n-----------------------\n"
-    change_types = set()
+    change_categories = set()
 
     if "comments" in diff and diff["comments"]:
         report += f"Comments: {diff['comments']}\n"
@@ -99,20 +102,20 @@ def analyze_diff_node_recursive(diff: dict) -> tuple[set[str], str]:
     # Analyze unified diff if present
     if "unified_diff" in diff and diff["unified_diff"]:
         child_change_types, child_report = _analyze_source_type(diff)
-        change_types.update(child_change_types)
+        change_categories.update(child_change_types)
         report += child_report
 
     # Recursively process child diff details
     if "details" in diff:
         for detail in diff["details"]:
             child_change_types, child_report = analyze_diff_node_recursive(detail)
-            change_types.update(child_change_types)
+            change_categories.update(child_change_types)
             report += child_report
 
-    return change_types, report
+    return change_categories, report
 
 
-def _analyze_source_type(diff: dict) -> tuple[set[str], str]:
+def _analyze_source_type(diff: dict) -> tuple[set[change_types.ChangeType], str]:
     """Helper to handle different source types."""
     source_type = diff["source1"]
 
@@ -143,13 +146,13 @@ def process_diffoscope_files(input_path: Path, output_dir: Path) -> dict:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 diff_data: dict = json.loads(f.read())
-            (change_types, report) = analyze_diff_node(diff_data)
-            if change_types:
-                for change_type in change_types:
+            (change_categories, report) = analyze_diff_node(diff_data)
+            if change_categories:
+                for change_type in change_categories:
                     change_types_dict.setdefault(change_type, [])
                     change_types_dict[change_type].append(file_path)
-                change_types_dict.setdefault(frozenset(change_types), [])
-                change_types_dict[frozenset(change_types)].append(file_path)
+                change_types_dict.setdefault(frozenset(change_categories), [])
+                change_types_dict[frozenset(change_categories)].append(file_path)
 
             # Create output path in the output directory
             output_path = output_dir / file_path.name.replace(".diffoscope.json", ".analysis.txt")
@@ -217,9 +220,9 @@ if __name__ == "__main__":
     simple_change_types = {key: value for key, value in change_types_dict.items() if isinstance(key, str)}
 
     print("Combined types of changes:")
-    for change_types, files in sorted(combined_change_types.items(), key=lambda item: len(item[1]), reverse=True):
+    for change_categories, files in sorted(combined_change_types.items(), key=lambda item: len(item[1]), reverse=True):
         percentage = (len(files) / file_count) * 100
-        sorted_change_types = sorted(change_types)
+        sorted_change_types = sorted(change_categories)
         change_types_str = ', '.join(sorted_change_types)
         print(f"\n{change_types_str}: {len(files):,} occurrences ({percentage:.2f}%)")
 
@@ -233,7 +236,7 @@ if __name__ == "__main__":
     print(f"\nWent through {file_count} files. Elapsed time: {elapsed_time:.2f} seconds, average time per file: {elapsed_time / file_count * 1000:.1f} milliseconds")
 
     print("--------------------------")
-    files_with_unknown_diffs = simple_change_types.get(constants.UNKNOWN_CHANGE, [])
+    files_with_unknown_diffs = simple_change_types.get(change_types.UNKNOWN_CHANGE, [])
     print(f"  {len(files_with_unknown_diffs):,} files with unknown changes")
     for file in files_with_unknown_diffs:
         print(f"  {file}")

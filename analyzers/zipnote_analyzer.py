@@ -1,4 +1,4 @@
-import constants
+import change_types
 
 def parse_diff_format(diff_text):
     added_files = []
@@ -16,7 +16,7 @@ def parse_diff_format(diff_text):
     return added_files, removed_files
 
 
-def analyze_zipnote(diff: dict) -> tuple[set[str], str]:
+def analyze_zipnote(diff: dict) -> tuple[set[change_types.ChangeType], str]:
     report = f"Source 1: {diff['source1']}\n"
     report += f"Source 2: {diff['source2']}\n"
 
@@ -32,10 +32,10 @@ def analyze_zipnote(diff: dict) -> tuple[set[str], str]:
     report += f"Added files: {', '.join(added_files)}\n"
     report += f"Removed files: {', '.join(removed_files)}\n"
 
-    change_types = set()
+    change_categories = set()
     if removed_files:
-        change_types.add(constants.FILE_REMOVED_CHANGE)
+        change_categories.add(change_types.FILE_REMOVED_CHANGE)
     if added_files:
-        change_types.add(constants.FILE_ADDED_CHANGE)
+        change_categories.add(change_types.FILE_ADDED_CHANGE)
 
-    return (change_types, report)
+    return (change_categories, report)

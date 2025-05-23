@@ -1,5 +1,5 @@
 import re
-import constants
+import change_types
 from collections import Counter
 
 
@@ -262,70 +262,70 @@ def compare_block_for_reordered_words(removed, added):
                 break  # Avoid duplicate matches
     return reordered
 
-def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
+def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
     report = f"Source 1: {diff['source1']}\n"
     report += f"Source 2: {diff['source2']}\n"
 
 
     if "has_internal_linenos" in diff and diff["has_internal_linenos"]: # High risk of false positives if the file has internal line numbers
         report += "Probably a hexdump or other hard to parse file, skipping analysis\n"
-        return {constants.HEXDUMP_CHANGE}, report
+        return {change_types.HEXDUMP_CHANGE}, report
     if "jandex" in diff["source1"] or "jandex" in diff["source2"]:
         report += "Jandex diff detected, skipping analysis\n"
-        return {constants.JANDEX_CHANGE}, report
+        return {change_types.JANDEX_CHANGE}, report
     if "js-beautify" in diff["source1"] or "js-beautify" in diff["source2"]:
         report += "js-beautify changes detected, skipping analysis\n"
-        return {constants.JS_BEAUTIFY_CHANGE}, report
+        return {change_types.JS_BEAUTIFY_CHANGE}, report
     if ".class" in diff["source1"] or ".class" in diff["source2"]:
         report += "Class file diff detected, skipping analysis\n"
-        return {constants.CLASS_FILE_CHANGE}, report
+        return {change_types.CLASS_FILE_CHANGE}, report
 
     if "comments" in diff and diff["comments"]:
         print (f"Comment: {diff['comments']}")
         if diff["comments"] == ["Ordering differences only"]:
             report += "Line ordering differences only, skipping analysis\n"
-            return {constants.LINE_ORDERING_CHANGE}, report
+            return {change_types.LINE_ORDERING_CHANGE}, report
         if diff["comments"] == ["Line-ending differences only"]:
             report += "Line-ending differences only, skipping analysis\n"
-            return {constants.LINE_ENDING_CHANGE}, report
+            return {change_types.LINE_ENDING_CHANGE}, report
 
-    change_types = set()
+    change_categories = set()
     unified_diff = diff["unified_diff"]
     match = PARTIAL_POM_CHUNK_PATTERN.search(unified_diff)
 
     if match:
         report += "Partial POM chunk detected, this is probably a pom file\n"
 
-        change_types.add(constants.POM_CHANGE)
+        change_categories.add(change_types.POM_CHANGE)
         report += analyze_pom_diff(unified_diff)
 
     diff_line_analysis = {
-        TIMESTAMP_DIFF_PATTERN: (constants.TIMESTAMP_CHANGE, "Timestamp diff detected"),
-        HASH_IN_XML_DIFF_PATTERN: (constants.HASH_IN_XML_CHANGE, "Hash in XML diff detected"),
-        HASH_IN_JSON_DIFF_PATTERN: (constants.HASH_IN_JSON_CHANGE, "Hash in JSON diff detected"),
-        HASH_FILE_CHANGE_PATTERN: (constants.HASH_FILE_CHANGE, "Hash file change detected"),
-        COPYRIGHT_CHANGE_PATTERN: (constants.COPYRIGHT_CHANGE, "Copyright change detected"),
-        GIT_COMMIT_CHANGE_PATTERN: (constants.GIT_COMMIT_CHANGE, "Git commit change detected"),
+        TIMESTAMP_DIFF_PATTERN: (change_types.TIMESTAMP_CHANGE, "Timestamp diff detected"),
+        HASH_IN_XML_DIFF_PATTERN: (change_types.HASH_IN_XML_CHANGE, "Hash in XML diff detected"),
+        HASH_IN_JSON_DIFF_PATTERN: (change_types.HASH_IN_JSON_CHANGE, "Hash in JSON diff detected"),
+        HASH_FILE_CHANGE_PATTERN: (change_types.HASH_FILE_CHANGE, "Hash file change detected"),
+        COPYRIGHT_CHANGE_PATTERN: (change_types.COPYRIGHT_CHANGE, "Copyright change detected"),
+        GIT_COMMIT_CHANGE_PATTERN: (change_types.GIT_COMMIT_CHANGE, "Git commit change detected"),
     }
     if "MANIFEST" in diff["source1"] or "MANIFEST" in diff["source2"]:
         diff_line_analysis.update({
-            BUILD_METADATA_PATTERN: (constants.BUILD_METADATA_CHANGE, "Build metadata change detected"),
+            BUILD_METADATA_PATTERN: (change_types.BUILD_METADATA_CHANGE, "Build metadata change detected"),
         })
     if "DEPENDENCIES" in diff["source1"] or "DEPENDENCIES" in diff["source2"]:
-        change_types.add(constants.DEPENDENCY_METADATA_CHANGE)
+        change_categories.add(change_types.DEPENDENCY_METADATA_CHANGE)
         report += "Dependency metadata diff detected.\n"
     if "git.properties" in diff["source1"] or "git.properties" in diff["source2"]:
-        change_types.add(constants.GIT_PROPERTIES_CHANGE)
+        change_categories.add(change_types.GIT_PROPERTIES_CHANGE)
         report += "Git properties diff detected.\n"
     if ".class" not in diff["source1"] and ".class" not in diff["source2"]: # This check is for java files. We get a lot of false positives on class files
         diff_line_analysis.update({
-            GENERATED_INTERNAL_ID_PATTERN: (constants.GENERATED_ID_CHANGE, "Generated internal ID detected"),
+            GENERATED_INTERNAL_ID_PATTERN: (change_types.GENERATED_ID_CHANGE, "Generated internal ID detected"),
         })
 
 
     if "module-info" in unified_diff:
         diff_line_analysis.update({
-            MODULE_INFO_JAVA_VERSION_PATTERN: (constants.JAVA_VERSION_CHANGE, "Java version change detected"),
+            MODULE_INFO_JAVA_VERSION_PATTERN: (change_types.JAVA_VERSION_CHANGE, "Java version change detected"),
         })
 
     removed_paths: dict[str,re.Match] = {}
@@ -335,7 +335,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
     if word_reordering_result:
         for (rem_line, add_line) in word_reordering_result:
             report += f"Reordered words: {rem_line} -> {add_line}\n"
-            change_types.add(constants.WORD_ORDERING_CHANGE)
+            change_categories.add(change_types.WORD_ORDERING_CHANGE)
 
     for line in unified_diff.splitlines():
         if not line.startswith(('-', '+')):
@@ -355,7 +355,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
             if added_match and removed_match.group("path") != added_match.group("path"):
                 # If the path exists in both, but the match is different
                 report += f"Path change detected: {removed_match['path']} -> {added_match['path']}\n"
-                change_types.add(constants.PATH_CHANGE)
+                change_categories.add(change_types.PATH_CHANGE)
 
     for line in unified_diff.splitlines():
         if not (line.strip() and line.strip()[0] in '+-'):
@@ -364,13 +364,13 @@ def analyze_file_diff(diff: dict) -> tuple[set[str],str]:
         for pattern, (change_type, message) in diff_line_analysis.items():
 
             if pattern.search(line):
-                change_types.add(change_type)
+                change_categories.add(change_type)
                 report += f"{message}: {line}\n"
                 # TODO: test time without break # break  # Move to the next line once a match is found
 
-    if not change_types and ("MANIFEST" in diff["source1"] or "MANIFEST" in diff["source2"]):
+    if not change_categories and ("MANIFEST" in diff["source1"] or "MANIFEST" in diff["source2"]):
         # If we have a manifest file and no other changes, we assume it's a manifest change
-        change_types.add(constants.UNKNOWN_MANIFEST_CHANGE)
+        change_categories.add(change_types.UNKNOWN_MANIFEST_CHANGE)
         report += "Unknown manifest file change detected\n"
 
-    return (change_types, report)
+    return (change_categories, report)

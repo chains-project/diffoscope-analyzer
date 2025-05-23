@@ -1,5 +1,5 @@
 import re
-import constants
+import change_types
 
 FILE_LIST_PATTERN = re.compile(r"""
     ^(?P<sign>[+-])                       # Diff sign
@@ -13,7 +13,7 @@ FILE_LIST_PATTERN = re.compile(r"""
     \s+(?P<path>.+)                      # File path
 """, re.VERBOSE)
 
-def analyze_file_list(diff: dict) -> tuple[set[str],str]:
+def analyze_file_list(diff: dict) -> tuple[set[change_types.ChangeType],str]:
     report = f"Source 1: {diff['source1']}\n"
     report += f"Source 2: {diff['source2']}\n"
 
@@ -103,26 +103,26 @@ def analyze_file_list(diff: dict) -> tuple[set[str],str]:
         else:
             raise ValueError(f"Unexpected changes for file: {path} object: {changes}")
 
-    change_types = set()
+    change_categories = set()
     if timestamp_change:
-        change_types.add(constants.TIMESTAMP_CHANGE)
+        change_categories.add(change_types.TIMESTAMP_CHANGE)
     if permission_change:
-        change_types.add(constants.PERMISSION_CHANGE)
+        change_categories.add(change_types.PERMISSION_CHANGE)
     if owner_change:
-        change_types.add(constants.OWNER_CHANGE)
+        change_categories.add(change_types.OWNER_CHANGE)
     if group_change:
-        change_types.add(constants.GROUP_CHANGE)
+        change_categories.add(change_types.GROUP_CHANGE)
     if file_content_or_size_change:
-        change_types.add(constants.FILE_CONTENT_OR_SIZE_CHANGE)
+        change_categories.add(change_types.FILE_CONTENT_CHANGE)
     if file_reordered_change:
-        change_types.add(constants.FILE_REORDERED_CHANGE)
+        change_categories.add(change_types.FILE_REORDERED_CHANGE)
     if file_removed_change:
-        change_types.add(constants.FILE_REMOVED_CHANGE)
+        change_categories.add(change_types.FILE_REMOVED_CHANGE)
     if file_added_change:
-        change_types.add(constants.FILE_ADDED_CHANGE)
+        change_categories.add(change_types.FILE_ADDED_CHANGE)
 
 
     if date_change_count > 0:
         report += f"\n{date_change_count} files changed only their date.\n"
 
-    return (change_types, report)
+    return (change_categories, report)
