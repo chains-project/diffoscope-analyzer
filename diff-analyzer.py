@@ -146,9 +146,13 @@ def process_diffoscope_files(input_path: Path, output_dir: Path) -> dict:
         file_count += 1
         print(f"File: {file_path}")
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                diff_data: dict = json.loads(f.read())
-            (change_categories, report) = analyze_diff_node(diff_data)
+            if "buildinfo" in file_path.name:
+                change_categories = {change_types.BUILDINFO_CHANGE}
+                report = "Buildinfo file changes detected.\n"
+            else:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    diff_data: dict = json.loads(f.read())
+                (change_categories, report) = analyze_diff_node(diff_data)
             if change_categories:
                 for change_type in change_categories:
                     change_types_dict.setdefault(change_type, [])
