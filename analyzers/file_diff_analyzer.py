@@ -159,7 +159,7 @@ MODULE_INFO_JAVA_VERSION_PATTERN = re.compile(r"""
 
 BUILD_METADATA_PATTERN = re.compile(r"""
     ^\s*[-+]                                      # Line starts with optional whitespace and a - or +
-    (?P<key>Bnd-LastModified|Build-Jdk|Built-By)  # Match only these keys
+    (?P<key>Bnd-LastModified|Build-Jdk|Built-By|Git-Remote-Origin-Url)  # Match only these keys
 """, re.VERBOSE)
 
 PATH_DIFF_PATTERN = re.compile(r"""
