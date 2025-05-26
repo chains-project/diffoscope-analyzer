@@ -59,6 +59,7 @@ def analyze_zipinfo(diff: dict) -> tuple[set[change_types.ChangeType], str]:
             permissions = file_diff_match.group("perm")
             size = file_diff_match.group("size")
             date = file_diff_match.group("date")
+            time = file_diff_match.group("time")
             path = file_diff_match.group("path")
 
             if path not in diff_line_results:
@@ -68,13 +69,13 @@ def analyze_zipinfo(diff: dict) -> tuple[set[change_types.ChangeType], str]:
                 diff_line_results[path].update({
                             "permissions_before": permissions,
                             "size_before": size,
-                            "timestamp_before": date,
+                            "timestamp_before": f"{date} {time}",
                         })
             if sign == "+":
                 diff_line_results[path].update({
                             "permissions_after": permissions,
                             "size_after": size,
-                            "timestamp_after": date,
+                            "timestamp_after": f"{date} {time}",
                         })
 
 
@@ -86,10 +87,10 @@ def analyze_zipinfo(diff: dict) -> tuple[set[change_types.ChangeType], str]:
         if key == "zipinfo_header":
             if changes["size_before"] != changes["size_after"]:
                 file_content_or_size_change = True
-                report += f"Zip file size changed from {size_before} bytes to {size_after} bytes.\n"
+                report += f"Zip file size changed from {changes['size_before']} bytes to {changes['size_after']} bytes.\n"
             if changes["num_entries_before"] != changes["num_entries_after"]:
                 number_of_files_change = True
-                report += f"Number of entries changed from {num_entries_before} to {num_entries_after}.\n"
+                report += f"Number of entries changed from {changes['num_entries_before']} to {changes['num_entries_after']}.\n"
             if changes["size_before"] == changes["size_after"] and changes["num_entries_before"] == changes["num_entries_after"]:
                 report += "No zipinfo header change even though there is a diff in header.\n"
         else:
