@@ -315,6 +315,8 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
         report += "Unknown class file diff detected, skipping analysis\n"
         return {change_types.CLASS_FILE_CHANGE}, report
 
+    change_categories = set()
+
     if "comments" in diff and diff["comments"]:
         print (f"Comment: {diff['comments']}")
         if diff["comments"] == ["Ordering differences only"]:
@@ -323,8 +325,15 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
         if diff["comments"] == ["Line-ending differences only"]:
             report += "Line-ending differences only, skipping analysis\n"
             return {change_types.LINE_ENDING_CHANGE}, report
+        # Check for pretty-printed differences
+        if "Pretty-printed" in diff["source1"] or "Pretty-printed" in diff["source2"]:
+            comments = diff["comments"]
+            for comment in comments:
+                if "Differences" in comment:
+                    report += "JSON differences detected:\n"
+                    report += f"{comment}\n\n"
+                    change_categories.add(change_types.JSON_DIFF_CHANGE)
 
-    change_categories = set()
     unified_diff = diff["unified_diff"]
     match = PARTIAL_POM_CHUNK_PATTERN.search(unified_diff)
 

@@ -39,6 +39,7 @@ CLASS_FILE_CHANGE: ChangeType = ChangeType("class_file_change")
 UNKNOWN_MANIFEST_CHANGE: ChangeType = ChangeType("unknown_manifest_change")
 HEXDUMP_CHANGE: ChangeType = ChangeType("hexdump_change")
 CLASS_LINE_NUMBER_CHANGE: ChangeType = ChangeType("class_line_number_change")
+JSON_DIFF_CHANGE: ChangeType = ChangeType("json_diff_change")
 
 FILE_DIFF_CHANGES: set[ChangeType] = {
     HASH_IN_XML_CHANGE,
@@ -62,6 +63,7 @@ FILE_DIFF_CHANGES: set[ChangeType] = {
     UNKNOWN_MANIFEST_CHANGE,
     HEXDUMP_CHANGE,
     CLASS_LINE_NUMBER_CHANGE,
+    JSON_DIFF_CHANGE,
 }
 
 # Special case for unknown changes
