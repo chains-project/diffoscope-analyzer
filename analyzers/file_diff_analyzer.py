@@ -132,6 +132,18 @@ XML_DIFF_LINE_PATTERN = re.compile(r"""
     <(?P<tag_name>[\w\-]+)              # Capture the tag name (e.g., <property>)
 """, re.VERBOSE)
 
+# Pattern for Java class file line number changes
+CLASS_LINE_NUMBER_PATTERN = re.compile(r"""
+    ^\s*[-+]                           # Line starts with optional whitespace, then - or +
+    \s+line\s+\d+:\s+\d+              # Match "line XX: YY"
+""", re.VERBOSE)
+
+# Pattern for Java class file SHA-256 checksum changes
+CLASS_CHECKSUM_PATTERN = re.compile(r"""
+    ^\s*[-+]                           # Line starts with optional whitespace, then - or +
+    \s+SHA-256\s+checksum\s+[a-f0-9]{64}  # Match "SHA-256 checksum" followed by 64 hex chars
+""", re.VERBOSE)
+
 GENERATED_INTERNAL_ID_PATTERN = re.compile(r"""
     ^\s*[-+]                            # Line starts with optional whitespace, then - or +
     .*?                                 # Non-greedy match
@@ -270,14 +282,37 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
     if "has_internal_linenos" in diff and diff["has_internal_linenos"]: # High risk of false positives if the file has internal line numbers
         report += "Probably a hexdump or other hard to parse file, skipping analysis\n"
         return {change_types.HEXDUMP_CHANGE}, report
+
     if "jandex" in diff["source1"] or "jandex" in diff["source2"]:
         report += "Jandex diff detected, skipping analysis\n"
         return {change_types.JANDEX_CHANGE}, report
+
     if "js-beautify" in diff["source1"] or "js-beautify" in diff["source2"]:
         report += "js-beautify changes detected, skipping analysis\n"
         return {change_types.JS_BEAUTIFY_CHANGE}, report
-    if ".class" in diff["source1"] or ".class" in diff["source2"]:
-        report += "Class file diff detected, skipping analysis\n"
+
+    if "javap" in diff["source1"] or "javap" in diff["source2"]:
+        # Check if the changes are only line numbers and checksums
+        unified_diff = diff["unified_diff"]
+        has_other_changes = False
+        has_line_number_changes = False
+        has_checksum_changes = False
+
+        for line in unified_diff.splitlines():
+            if not line.startswith(('-', '+')):
+                continue
+            if CLASS_LINE_NUMBER_PATTERN.search(line):
+                has_line_number_changes = True
+            elif CLASS_CHECKSUM_PATTERN.search(line):
+                has_checksum_changes = True
+            elif line.strip():
+                has_other_changes = True
+                break
+
+        if not has_other_changes and (has_line_number_changes and has_checksum_changes):
+            report += "Java class file with only line number or checksum changes detected\n"
+            return {change_types.CLASS_LINE_NUMBER_CHANGE}, report
+        report += "Unknown class file diff detected, skipping analysis\n"
         return {change_types.CLASS_FILE_CHANGE}, report
 
     if "comments" in diff and diff["comments"]:
@@ -358,11 +393,10 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
                 change_categories.add(change_types.PATH_CHANGE)
 
     for line in unified_diff.splitlines():
-        if not (line.strip() and line.strip()[0] in '+-'):
+        if not (line.strip().startswith(('+', '-'))):
             # Skip lines that are not relevant
             continue
         for pattern, (change_type, message) in diff_line_analysis.items():
-
             if pattern.search(line):
                 change_categories.add(change_type)
                 report += f"{message}: {line}\n"
