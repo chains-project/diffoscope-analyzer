@@ -264,15 +264,83 @@ def detect_word_reordering(unified_diff):
     return results
 
 
-def compare_block_for_reordered_words(removed, added):
+def compare_block_for_reordered_words(removed_lines, added_lines):
     """Return reordered line pairs based on word reordering."""
     reordered = []
-    for rem_line in removed:
-        for add_line in added:
-            if is_reordered_words(rem_line, add_line):
-                reordered.append((rem_line, add_line))
+    for removed_line in removed_lines:
+        for added_line in added_lines:
+            if is_reordered_words(removed_line, added_line):
+                reordered.append((removed_line, added_line))
                 break  # Avoid duplicate matches
     return reordered
+
+def detect_manifest_reordering(unified_diff: str) -> tuple[bool, str]:
+    """Detect if the diff only contains reordering of manifest entries.
+
+    Args:
+        unified_diff: The unified diff text
+
+    Returns:
+        Tuple of (is_reorder_only, report)
+    """
+    removed_lines = []
+    added_lines = []
+    results: list[tuple[str, str]] = []
+
+    prev_type = None
+
+    splitlines = unified_diff.splitlines()
+    MAX_NUMBER_OF_LINES = 10000
+    if len(splitlines) > MAX_NUMBER_OF_LINES: # This is too slow to be practical otherwise
+        return []
+    for line in splitlines:
+        if line.startswith('-'):
+            line_type = '-'
+        elif line.startswith('+'):
+            line_type = '+'
+        else:
+            # On neutral line, flush block
+            results.extend(compare_block_for_reordered_items(removed_lines, added_lines))
+            removed_lines.clear()
+            added_lines.clear()
+            prev_type = None
+            continue
+
+        # On direction switch, flush block
+        if prev_type == '+' and line_type != prev_type:
+            results.extend(compare_block_for_reordered_items(removed_lines, added_lines))
+            removed_lines.clear()
+            added_lines.clear()
+
+        content = line[1:].strip()
+        if line_type == '-':
+            removed_lines.append(content)
+        else:
+            added_lines.append(content)
+
+        prev_type = line_type
+
+    if results:
+        print(results)
+        report = "Manifest reordering detected:\n"
+        for (removed_items, added_items) in results:
+            report += f"  {removed_items} -> {added_items}\n"
+        return True, report
+    return False, ""
+
+
+def compare_block_for_reordered_items(removed_lines, added_lines):
+    """Return reordered items based on word reordering."""
+    removed_line = "".join([line.strip(" +-") for line in removed_lines])
+    removed_items = removed_line.split(",")
+
+    added_line = "".join([line.strip(" +-") for line in added_lines])
+    added_items = added_line.split(",")
+
+    if removed_items == added_items:
+        return []
+    return [(removed_items, added_items)]
+
 
 def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
     report = f"Source 1: {diff['source1']}\n"
@@ -411,9 +479,15 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
                 report += f"{message}: {line}\n"
                 # TODO: test time without break # break  # Move to the next line once a match is found
 
-    if not change_categories and ("MANIFEST" in diff["source1"] or "MANIFEST" in diff["source2"]):
-        # If we have a manifest file and no other changes, we assume it's a manifest change
-        change_categories.add(change_types.UNKNOWN_MANIFEST_CHANGE)
-        report += "Unknown manifest file change detected\n"
+    if ("MANIFEST" in diff["source1"] or "MANIFEST" in diff["source2"]):
+        # Check for manifest reordering
+        is_reorder, reorder_report = detect_manifest_reordering(unified_diff)
+        if is_reorder:
+            change_categories.add(change_types.MANIFEST_REORDER_CHANGE)
+            report += reorder_report
+        if not change_categories:
+            # If we have a manifest file and no other changes, we assume it's a manifest change
+            change_categories.add(change_types.UNKNOWN_MANIFEST_CHANGE)
+            report += "Unknown manifest file change detected\n"
 
     return (change_categories, report)
