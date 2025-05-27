@@ -13,7 +13,10 @@ def parse_diff_format(diff_text):
             filename = line[len('-Filename:'):].strip()
             removed_files.append(filename)
 
-    return added_files, removed_files
+    added_files_without_removed = [added_file for added_file in added_files if added_file not in removed_files]
+    removed_files_without_added = [removed_file for removed_file in removed_files if removed_file not in added_files]
+
+    return added_files_without_removed, removed_files_without_added
 
 
 def analyze_zipnote(diff: dict) -> tuple[set[change_types.ChangeType], str]:
@@ -29,8 +32,10 @@ def analyze_zipnote(diff: dict) -> tuple[set[change_types.ChangeType], str]:
 
     added_files, removed_files = parse_diff_format(diff_lines)
 
-    report += f"Added files: {', '.join(added_files)}\n"
-    report += f"Removed files: {', '.join(removed_files)}\n"
+    if added_files:
+        report += f"Added files: {', '.join(added_files)}\n"
+    if removed_files:
+        report += f"Removed files: {', '.join(removed_files)}\n"
 
     change_categories = set()
     if removed_files:
