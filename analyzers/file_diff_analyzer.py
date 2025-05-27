@@ -159,7 +159,7 @@ MODULE_INFO_JAVA_VERSION_PATTERN = re.compile(r"""
 
 BUILD_METADATA_PATTERN = re.compile(r"""
     ^\s*[-+]                                      # Line starts with optional whitespace and a - or +
-    (?P<key>Bnd-LastModified|Build-Jdk|Built-By|Git-Remote-Origin-Url)  # Match only these keys
+    (?P<key>Bnd-LastModified|Build-Jdk|Built-By|Git-Remote-Origin-Url|SCM-Branch)  # Match only these keys
 """, re.VERBOSE)
 
 PATH_DIFF_PATTERN = re.compile(r"""
@@ -377,8 +377,8 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
 
     word_reordering_result = detect_word_reordering(unified_diff)
     if word_reordering_result:
-        for (rem_line, add_line) in word_reordering_result:
-            report += f"Reordered words: {rem_line} -> {add_line}\n"
+        for (removed_line, added_line) in word_reordering_result:
+            report += f"Reordered words: {removed_line} -> {added_line}\n"
             change_categories.add(change_types.WORD_ORDERING_CHANGE)
 
     for line in unified_diff.splitlines():
@@ -402,7 +402,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
                 change_categories.add(change_types.PATH_CHANGE)
 
     for line in unified_diff.splitlines():
-        if not (line.strip().startswith(('+', '-'))):
+        if not (line.lstrip().startswith(('+', '-'))):
             # Skip lines that are not relevant
             continue
         for pattern, (change_type, message) in diff_line_analysis.items():
