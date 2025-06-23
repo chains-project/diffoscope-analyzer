@@ -1,4 +1,5 @@
 import change_types
+from helpers import report_section_init, report_section_end
 
 def parse_diff_format(diff_text):
     added_files = []
@@ -20,8 +21,7 @@ def parse_diff_format(diff_text):
 
 
 def analyze_zipnote(diff: dict) -> tuple[set[change_types.ChangeType], str]:
-    report = f"Source 1: {diff['source1']}\n"
-    report += f"Source 2: {diff['source2']}\n"
+    report = report_section_init(diff['source1'], diff['source2'])
 
     diff_lines = diff["unified_diff"]
 
@@ -43,4 +43,5 @@ def analyze_zipnote(diff: dict) -> tuple[set[change_types.ChangeType], str]:
     if added_files:
         change_categories.add(change_types.FILE_ADDED_CHANGE)
 
+    report += report_section_end()
     return (change_categories, report)

@@ -161,7 +161,7 @@ def process_diffoscope_files(input_path: Path, output_dir: Path) -> dict:
                 change_types_dict[frozenset(change_categories)].append(file_path)
 
             # Create output path in the output directory
-            output_path = output_dir / file_path.name.replace(".diffoscope.json", ".analysis.txt")
+            output_path = output_dir / file_path.name.replace(".diffoscope.json", ".analysis.md")
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(report)
             print(f"Report at {output_path}\n")

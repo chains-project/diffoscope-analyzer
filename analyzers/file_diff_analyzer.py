@@ -1,7 +1,7 @@
 import re
 import change_types
 from collections import Counter
-
+from helpers import report_section_init, report_section_end
 
 # We want to detect different types of timestamps on different formats
 TIMESTAMP_DIFF_PATTERN = re.compile(r"""
@@ -343,8 +343,7 @@ def compare_block_for_reordered_items(removed_lines, added_lines):
 
 
 def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
-    report = f"Source 1: {diff['source1']}\n"
-    report += f"Source 2: {diff['source2']}\n"
+    report = report_section_init(diff['source1'], diff['source2'])
 
 
     if "has_internal_linenos" in diff and diff["has_internal_linenos"]: # High risk of false positives if the file has internal line numbers
@@ -490,4 +489,5 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
             change_categories.add(change_types.UNKNOWN_MANIFEST_CHANGE)
             report += "Unknown manifest file change detected\n"
 
+    report += report_section_end()
     return (change_categories, report)

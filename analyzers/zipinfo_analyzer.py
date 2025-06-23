@@ -1,5 +1,6 @@
 import re
 import change_types
+from helpers import report_section_init, report_section_end
 
 ZIPINFO_HEADER_PATTERN = re.compile(r'^([+-])Zip file size: (\d+ bytes), number of entries: (\d+)$')
 ZIPINFO_FILE_PATTERN = re.compile(r"""
@@ -16,8 +17,7 @@ ZIPINFO_FILE_PATTERN = re.compile(r"""
 """, re.VERBOSE)
 
 def analyze_zipinfo(diff: dict) -> tuple[set[change_types.ChangeType], str]:
-    report = f"Source 1: {diff['source1']}\n"
-    report += f"Source 2: {diff['source2']}\n"
+    report = report_section_init(diff['source1'], diff['source2'])
 
     diff_lines = diff["unified_diff"].splitlines()
 
@@ -148,4 +148,5 @@ def analyze_zipinfo(diff: dict) -> tuple[set[change_types.ChangeType], str]:
     if date_change_count > 0:
         report += f"\n{date_change_count} files changed only their date.\n"
 
+    report += report_section_end()
     return (change_categories, report)
