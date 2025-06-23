@@ -157,7 +157,7 @@ MODULE_INFO_JAVA_VERSION_PATTERN = re.compile(r"""
     \d+(?:\.\d+){0,2}                  # Match a Java version string (e.g., "1.8.0")
 """, re.VERBOSE)
 
-BUILD_METADATA_PATTERN = re.compile(r"""
+MANIFEST_MF_PATTERN = re.compile(r"""
     ^\s*[-+]                                      # Line starts with optional whitespace and a - or +
     (?P<key>Bnd-LastModified|Build-Jdk|Built-By|Git-Remote-Origin-Url|SCM-Branch)  # Match only these keys
 """, re.VERBOSE)
@@ -337,9 +337,9 @@ def compare_block_for_reordered_items(removed_lines, added_lines):
     added_line = "".join([line.strip(" +-") for line in added_lines])
     added_items = added_line.split(",")
 
-    if removed_items == added_items:
-        return []
-    return [(removed_items, added_items)]
+    if removed_items != added_items and set(removed_items) == set(added_items):
+        return [(removed_items, added_items)]
+    return []
 
 
 def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
@@ -421,7 +421,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
     }
     if "MANIFEST" in diff["source1"] or "MANIFEST" in diff["source2"]:
         diff_line_analysis.update({
-            BUILD_METADATA_PATTERN: (change_types.BUILD_METADATA_CHANGE, "Build metadata change detected"),
+            MANIFEST_MF_PATTERN: (change_types.MANIFEST_MF_CHANGE, "Manifest change detected"),
         })
     if "DEPENDENCIES" in diff["source1"] or "DEPENDENCIES" in diff["source2"]:
         change_categories.add(change_types.DEPENDENCY_METADATA_CHANGE)

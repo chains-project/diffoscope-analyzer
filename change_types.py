@@ -29,7 +29,7 @@ GENERATED_ID_CHANGE: ChangeType = ChangeType("generated_id_change")
 LINE_ENDING_CHANGE: ChangeType = ChangeType("line_ending_change")
 JAVA_VERSION_CHANGE: ChangeType = ChangeType("java_version_change")
 JS_BEAUTIFY_CHANGE: ChangeType = ChangeType("js_beautify_change")
-BUILD_METADATA_CHANGE: ChangeType = ChangeType("build_metadata_change")
+MANIFEST_MF_CHANGE: ChangeType = ChangeType("manifest_mf_change")
 DEPENDENCY_METADATA_CHANGE: ChangeType = ChangeType("dependency_metadata_change")
 PATH_CHANGE: ChangeType = ChangeType("path_change")
 WORD_ORDERING_CHANGE: ChangeType = ChangeType("word_ordering_change")
@@ -55,7 +55,7 @@ FILE_DIFF_CHANGES: set[ChangeType] = {
     LINE_ENDING_CHANGE,
     JAVA_VERSION_CHANGE,
     JS_BEAUTIFY_CHANGE,
-    BUILD_METADATA_CHANGE,
+    MANIFEST_MF_CHANGE,
     DEPENDENCY_METADATA_CHANGE,
     PATH_CHANGE,
     WORD_ORDERING_CHANGE,
