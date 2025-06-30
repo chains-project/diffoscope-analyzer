@@ -321,7 +321,6 @@ def detect_manifest_reordering(unified_diff: str) -> tuple[bool, str]:
         prev_type = line_type
 
     if results:
-        print(results)
         report = "Manifest reordering detected:\n"
         for (removed_items, added_items) in results:
             report += f"  {removed_items} -> {added_items}\n"
@@ -350,6 +349,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
         report += "Probably a hexdump or other hard to parse file, skipping analysis\n"
         return {change_types.HEXDUMP_CHANGE}, report
 
+    # Jandex files always have internal line numbers in the input data so we'll never hit this
     if "jandex" in diff["source1"] or "jandex" in diff["source2"]:
         report += "Jandex diff detected, skipping analysis\n"
         return {change_types.JANDEX_CHANGE}, report
@@ -476,7 +476,6 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
             if pattern.search(line):
                 change_categories.add(change_type)
                 report += f"{message}: {line}\n"
-                # TODO: test time without break # break  # Move to the next line once a match is found
 
     if ("MANIFEST" in diff["source1"] or "MANIFEST" in diff["source2"]):
         # Check for manifest reordering
