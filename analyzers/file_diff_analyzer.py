@@ -398,7 +398,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
             for comment in comments:
                 if "Differences" in comment:
                     report += "JSON differences detected:\n"
-                    report += f"{comment}\n\n"
+                    report += f"{comments}\n\n"
                     change_categories.add(change_types.JSON_DIFF_CHANGE)
 
     unified_diff = diff["unified_diff"]
