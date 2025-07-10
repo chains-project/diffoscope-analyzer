@@ -356,7 +356,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
 
     if "js-beautify" in diff["source1"] or "js-beautify" in diff["source2"]:
         report += "js-beautify changes detected, skipping analysis\n"
-        return {change_types.JS_BEAUTIFY_CHANGE}, report
+        return {change_types.JS_CHANGE}, report
 
     if "javap" in diff["source1"] or "javap" in diff["source2"]:
         # Check if the changes are only line numbers and checksums

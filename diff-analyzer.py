@@ -149,6 +149,7 @@ def process_diffoscope_files(input_path: Path, output_dir: Path) -> dict:
             if "buildinfo" in file_path.name:
                 change_categories = {change_types.BUILDINFO_CHANGE}
                 report = "Buildinfo file changes detected.\n"
+                print(f"Change type: {change_types.BUILDINFO_CHANGE}")
             else:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     diff_data: dict = json.loads(f.read())
@@ -231,6 +232,8 @@ if __name__ == "__main__":
         sorted_change_types = sorted(change_categories)
         change_types_str = ', '.join(sorted_change_types)
         print(f"\n{change_types_str}: {len(files):,} occurrences ({percentage:.2f}%)")
+        for file in sorted(files):
+            print(f"  {file}")
 
     print("\nSimple types of changes:")
     for change_type, files in sorted(simple_change_types.items(), key=lambda item: len(item[1]), reverse=True):
