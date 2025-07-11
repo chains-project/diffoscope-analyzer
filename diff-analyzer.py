@@ -150,6 +150,10 @@ def process_diffoscope_files(input_path: Path, output_dir: Path) -> dict:
                 change_categories = {change_types.BUILDINFO_CHANGE}
                 report = "Buildinfo file changes detected.\n"
                 print(f"Change type: {change_types.BUILDINFO_CHANGE}")
+            elif "cyclonedx.xml" in file_path.name:
+                change_categories = {change_types.BOM_CHANGE}
+                report = "CycloneDX BOM file changes detected.\n"
+                print(f"Change type: {change_types.BOM_CHANGE}")
             else:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     diff_data: dict = json.loads(f.read())

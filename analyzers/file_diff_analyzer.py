@@ -96,18 +96,19 @@ PARTIAL_POM_CHUNK_PATTERN = re.compile(r"""
         modelVersion |
         groupId |
         artifactId |
-        version |
+        # version |
         packaging |
         # name |
-        dependencies |
-        dependency |
+        # dependencies |
+        # dependency |
+        descriptors |
         build |
         plugin |
         plugins |
         executions |
         execution |
         configuration |
-        id |
+        # id |
         phase |
         goals |
         goal
@@ -159,7 +160,7 @@ MODULE_INFO_JAVA_VERSION_PATTERN = re.compile(r"""
 
 MANIFEST_MF_PATTERN = re.compile(r"""
     ^\s*[-+]                                      # Line starts with optional whitespace and a - or +
-    (?P<key>Bnd-LastModified|Build-Jdk|Built-By|Git-Remote-Origin-Url|SCM-Branch)  # Match only these keys
+    (?P<key>Bnd-LastModified|Build-Jdk|Built-By|Git-Remote-Origin-Url|SCM-Branch|X-Compile-Release-JDK|X-Compile-Source-JDK)  # Match only these keys
 """, re.VERBOSE)
 
 PATH_DIFF_PATTERN = re.compile(r"""
