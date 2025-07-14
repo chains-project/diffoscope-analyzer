@@ -19,7 +19,7 @@ FILE_ADDED_CHANGE: ChangeType = ChangeType("file_added_change")
 
 # File name based changes
 BUILDINFO_CHANGE: ChangeType = ChangeType("buildinfo_change")
-BOM_CHANGE: ChangeType = ChangeType("bom_change")
+SBOM_CHANGE: ChangeType = ChangeType("sbom_change")
 
 # File diff changes
 HASH_IN_XML_CHANGE: ChangeType = ChangeType("hash_in_xml_change")

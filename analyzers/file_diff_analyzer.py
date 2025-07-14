@@ -345,7 +345,6 @@ def compare_block_for_reordered_items(removed_lines, added_lines):
 def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
     report = report_section_init(diff['source1'], diff['source2'])
 
-
     if "has_internal_linenos" in diff and diff["has_internal_linenos"]: # High risk of false positives if the file has internal line numbers
         report += "Probably a hexdump or other hard to parse file, skipping analysis\n"
         return {change_types.HEXDUMP_CHANGE}, report
@@ -358,6 +357,10 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
     if "js-beautify" in diff["source1"] or "js-beautify" in diff["source2"]:
         report += "js-beautify changes detected, skipping analysis\n"
         return {change_types.JS_CHANGE}, report
+
+    if any(bom_string in diff["source1"] or bom_string in diff["source2"] for bom_string in ["bom.json", "bom.xml", "cyclonedx.xml", "cyclonedx.json", "spdx.json"]):
+        report += "SBOM file changes detected, skipping analysis\n"
+        return {change_types.SBOM_CHANGE}, report
 
     if "javap" in diff["source1"] or "javap" in diff["source2"]:
         # Check if the changes are only line numbers and checksums

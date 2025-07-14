@@ -146,14 +146,23 @@ def process_diffoscope_files(input_path: Path, output_dir: Path) -> dict:
         file_count += 1
         print(f"File: {file_path}")
         try:
+            # For the first two filename based detectors, don't bother running analyzers
             if "buildinfo" in file_path.name:
                 change_categories = {change_types.BUILDINFO_CHANGE}
                 report = "Buildinfo file changes detected.\n"
                 print(f"Change type: {change_types.BUILDINFO_CHANGE}")
-            elif "cyclonedx.xml" in file_path.name:
-                change_categories = {change_types.BOM_CHANGE}
+            elif "cyclonedx.xml" in file_path.name or "cyclonedx.json" in file_path.name:
+                change_categories = {change_types.SBOM_CHANGE}
                 report = "CycloneDX BOM file changes detected.\n"
-                print(f"Change type: {change_types.BOM_CHANGE}")
+                print(f"Change type: {change_types.SBOM_CHANGE}")
+            elif "spdx.json" in file_path.name:
+                change_categories = {change_types.SBOM_CHANGE}
+                report = "SPDX BOM file changes detected.\n"
+                print(f"Change type: {change_types.SBOM_CHANGE}")
+            elif "bom.json" in file_path.name:
+                change_categories = {change_types.SBOM_CHANGE}
+                report = "BOM file changes detected.\n"
+                print(f"Change type: {change_types.SBOM_CHANGE}")
             else:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     diff_data: dict = json.loads(f.read())
