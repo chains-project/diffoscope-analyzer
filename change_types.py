@@ -6,7 +6,6 @@ from typing import NewType
 ChangeType = NewType("ChangeType", str)
 
 # Zipinfo
-TIMESTAMP_CHANGE: ChangeType = ChangeType("timestamp_change")
 PERMISSION_CHANGE: ChangeType = ChangeType("permission_change")
 OWNER_CHANGE: ChangeType = ChangeType("owner_change") # These dissapear after OSS-rebuild
 GROUP_CHANGE: ChangeType = ChangeType("group_change") # These dissapear after OSS-rebuild
@@ -22,6 +21,7 @@ BUILDINFO_CHANGE: ChangeType = ChangeType("buildinfo_change")
 SBOM_CHANGE: ChangeType = ChangeType("sbom_change")
 
 # File diff changes
+TIMESTAMP_CHANGE: ChangeType = ChangeType("timestamp_change")
 HASH_IN_XML_CHANGE: ChangeType = ChangeType("hash_in_xml_change")
 HASH_IN_JSON_CHANGE: ChangeType = ChangeType("hash_in_json_change")
 HASH_FILE_CHANGE: ChangeType = ChangeType("hash_file_change")
@@ -47,6 +47,7 @@ JSON_DIFF_CHANGE: ChangeType = ChangeType("json_diff_change")
 MANIFEST_REORDER_CHANGE: ChangeType = ChangeType("manifest_reorder_change")
 
 FILE_DIFF_CHANGES: set[ChangeType] = {
+    TIMESTAMP_CHANGE,
     HASH_IN_XML_CHANGE,
     HASH_IN_JSON_CHANGE,
     HASH_FILE_CHANGE,
