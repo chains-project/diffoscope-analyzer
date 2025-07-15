@@ -13,8 +13,9 @@ import oss_rebuild_files
 # Assuming constants.py is in the same directory or available in PYTHONPATH
 try:
     import change_types
+    from category_mapping import print_categorized_summary
 except ImportError:
-    print("Error: change_types.py not found. Please ensure it is in the same directory or in your PYTHONPATH.")
+    print("Error: change_types.py or category_mapping.py not found. Please ensure they are in the same directory or in your PYTHONPATH.")
     sys.exit(1)
 
 # Import analyzers (assuming they are in a subdirectory named 'analyzers')
@@ -252,6 +253,9 @@ if __name__ == "__main__":
         percentage = (len(files) / file_count) * 100
         print(f"\n{change_type}: {len(files):,} occurrences ({percentage:.2f}%)")
 
+    # Create a dictionary with change type counts for the categorized summary
+    change_type_counts = {change_type: len(files) for change_type, files in simple_change_types.items()}
+    print_categorized_summary(change_type_counts)
 
     elapsed_time = time.time() - time_before
     print(f"\nWent through {file_count} files. Elapsed time: {elapsed_time:.2f} seconds, average time per file: {elapsed_time / file_count * 1000:.1f} milliseconds")
