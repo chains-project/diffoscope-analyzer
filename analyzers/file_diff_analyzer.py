@@ -356,7 +356,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
 
     if "js-beautify" in diff["source1"] or "js-beautify" in diff["source2"]:
         report += "js-beautify changes detected, skipping analysis\n"
-        return {change_types.JAVA_SCRIPT_CHANGE}, report
+        return {change_types.JAVASCRIPT_CHANGE}, report
 
     if any(bom_string in diff["source1"] or bom_string in diff["source2"] for bom_string in ["bom.json", "bom.xml", "cyclonedx.xml", "cyclonedx.json", "spdx.json"]):
         report += "SBOM file changes detected, skipping analysis\n"
