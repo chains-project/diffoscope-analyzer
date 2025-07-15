@@ -347,7 +347,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
 
     if "has_internal_linenos" in diff and diff["has_internal_linenos"]: # High risk of false positives if the file has internal line numbers
         report += "Probably a hexdump or other hard to parse file, skipping analysis\n"
-        return {change_types.HEXDUMP_CHANGE}, report
+        return {change_types.BINARY_CHANGE}, report
 
     # Jandex files always have internal line numbers in the input data so we'll never hit this
     if "jandex" in diff["source1"] or "jandex" in diff["source2"]:
@@ -356,7 +356,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
 
     if "js-beautify" in diff["source1"] or "js-beautify" in diff["source2"]:
         report += "js-beautify changes detected, skipping analysis\n"
-        return {change_types.JS_CHANGE}, report
+        return {change_types.JAVA_SCRIPT_CHANGE}, report
 
     if any(bom_string in diff["source1"] or bom_string in diff["source2"] for bom_string in ["bom.json", "bom.xml", "cyclonedx.xml", "cyclonedx.json", "spdx.json"]):
         report += "SBOM file changes detected, skipping analysis\n"
@@ -424,7 +424,7 @@ def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
     }
     if "MANIFEST" in diff["source1"] or "MANIFEST" in diff["source2"]:
         diff_line_analysis.update({
-            MANIFEST_MF_PATTERN: (change_types.MANIFEST_MF_CHANGE, "Manifest change detected"),
+            MANIFEST_MF_PATTERN: (change_types.MANIFEST_CHANGE, "Manifest change detected"),
         })
     if "DEPENDENCIES" in diff["source1"] or "DEPENDENCIES" in diff["source2"]:
         change_categories.add(change_types.DEPENDENCY_METADATA_CHANGE)

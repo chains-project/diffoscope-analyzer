@@ -32,8 +32,8 @@ LINE_ORDERING_CHANGE: ChangeType = ChangeType("line_ordering_change")
 GENERATED_ID_CHANGE: ChangeType = ChangeType("generated_id_change")
 LINE_ENDING_CHANGE: ChangeType = ChangeType("line_ending_change")
 JAVA_VERSION_CHANGE: ChangeType = ChangeType("java_version_change") # This is skipped because we skip analysis of class files, we might want to add it back in the future
-JS_CHANGE: ChangeType = ChangeType("js_change")
-MANIFEST_MF_CHANGE: ChangeType = ChangeType("manifest_mf_change")
+JAVASCRIPT_CHANGE: ChangeType = ChangeType("javascript_change")
+MANIFEST_CHANGE: ChangeType = ChangeType("manifest_change")
 DEPENDENCY_METADATA_CHANGE: ChangeType = ChangeType("dependency_metadata_change")
 PATH_CHANGE: ChangeType = ChangeType("path_change")
 WORD_ORDERING_CHANGE: ChangeType = ChangeType("word_ordering_change")
@@ -41,7 +41,7 @@ GIT_COMMIT_CHANGE: ChangeType = ChangeType("git_commit_change")
 GIT_PROPERTIES_CHANGE: ChangeType = ChangeType("git_properties_change")
 CLASS_FILE_CHANGE: ChangeType = ChangeType("class_file_change")
 UNKNOWN_MANIFEST_CHANGE: ChangeType = ChangeType("unknown_manifest_change")
-HEXDUMP_CHANGE: ChangeType = ChangeType("hexdump_change")
+BINARY_CHANGE: ChangeType = ChangeType("hexdump_change")
 CLASS_LINE_NUMBER_CHANGE: ChangeType = ChangeType("class_line_number_change")
 JSON_DIFF_CHANGE: ChangeType = ChangeType("json_diff_change")
 MANIFEST_REORDER_CHANGE: ChangeType = ChangeType("manifest_reorder_change")
@@ -58,8 +58,8 @@ FILE_DIFF_CHANGES: set[ChangeType] = {
     GENERATED_ID_CHANGE,
     LINE_ENDING_CHANGE,
     JAVA_VERSION_CHANGE,
-    JS_CHANGE,
-    MANIFEST_MF_CHANGE,
+    JAVA_SCRIPT_CHANGE,
+    MANIFEST_CHANGE,
     DEPENDENCY_METADATA_CHANGE,
     PATH_CHANGE,
     WORD_ORDERING_CHANGE,
@@ -67,7 +67,7 @@ FILE_DIFF_CHANGES: set[ChangeType] = {
     GIT_PROPERTIES_CHANGE,
     CLASS_FILE_CHANGE,
     UNKNOWN_MANIFEST_CHANGE,
-    HEXDUMP_CHANGE,
+    BINARY_CHANGE,
     CLASS_LINE_NUMBER_CHANGE,
     JSON_DIFF_CHANGE,
     MANIFEST_REORDER_CHANGE,
