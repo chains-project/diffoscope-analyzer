@@ -133,9 +133,9 @@ def analyze_zipinfo(diff: dict) -> tuple[set[change_types.ChangeType], str]:
         change_categories.add(change_types.TIMESTAMP_CHANGE)
     if permission_change:
         change_categories.add(change_types.PERMISSION_CHANGE)
-    if number_of_files_change:
-        # This is a superset that contains all of file_added and file_removed changes
-        # change_categories.add(change_types.NUMBER_OF_FILES_CHANGE)
+    # if number_of_files_change:
+    #     This is a superset that contains all of file_added and file_removed changes
+    #     change_categories.add(change_types.NUMBER_OF_FILES_CHANGE)
     if file_content_or_size_change:
         change_categories.add(change_types.FILE_CONTENT_CHANGE)
     if file_reordered_change:
