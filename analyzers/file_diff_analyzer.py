@@ -345,14 +345,13 @@ def compare_block_for_reordered_items(removed_lines, added_lines):
 def analyze_file_diff(diff: dict) -> tuple[set[change_types.ChangeType],str]:
     report = report_section_init(diff['source1'], diff['source2'])
 
-    if "has_internal_linenos" in diff and diff["has_internal_linenos"]: # High risk of false positives if the file has internal line numbers
-        report += "Probably a hexdump or other hard to parse file, skipping analysis\n"
-        return {change_types.BINARY_CHANGE}, report
-
-    # Jandex files always have internal line numbers in the input data so we'll never hit this
     if "jandex" in diff["source1"] or "jandex" in diff["source2"]:
         report += "Jandex diff detected, skipping analysis\n"
         return {change_types.JANDEX_CHANGE}, report
+
+    if "has_internal_linenos" in diff and diff["has_internal_linenos"]: # High risk of false positives if the file has internal line numbers
+        report += "Probably a hexdump or other hard to parse file, skipping analysis\n"
+        return {change_types.BINARY_CHANGE}, report
 
     if "js-beautify" in diff["source1"] or "js-beautify" in diff["source2"]:
         report += "js-beautify changes detected, skipping analysis\n"
