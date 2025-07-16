@@ -51,7 +51,7 @@ CATEGORY_SBOM_DEPENDENCY = "SBOM and dependency metadata changes"
 CATEGORY_FILES_ADDED_REMOVED = "Files added or removed"
 CATEGORY_NON_DETERMINISTIC = "Non-deterministic build"
 CATEGORY_OTHER_FILE_CHANGES = "Other file changes"
-CATEGORY_DEPENDENT_ON_OTHER = "Dependent on other changes"
+CATEGORY_HASH_CHANGES = "Hash changes"
 
 # Mapping from change types to categories
 CHANGE_TYPE_TO_CATEGORY: Dict[ChangeType, str] = {
@@ -101,9 +101,9 @@ CHANGE_TYPE_TO_CATEGORY: Dict[ChangeType, str] = {
     JSON_DIFF_CHANGE: CATEGORY_OTHER_FILE_CHANGES,
 
     # Dependent on other changes
-    HASH_FILE_CHANGE: CATEGORY_DEPENDENT_ON_OTHER,
-    HASH_IN_JSON_CHANGE: CATEGORY_DEPENDENT_ON_OTHER,
-    HASH_IN_XML_CHANGE: CATEGORY_DEPENDENT_ON_OTHER,
+    HASH_FILE_CHANGE: CATEGORY_HASH_CHANGES,
+    HASH_IN_JSON_CHANGE: CATEGORY_HASH_CHANGES,
+    HASH_IN_XML_CHANGE: CATEGORY_HASH_CHANGES,
 
     # Additional change types that weren't explicitly categorized
     OWNER_CHANGE: CATEGORY_BUILD_ENVIRONMENT,
