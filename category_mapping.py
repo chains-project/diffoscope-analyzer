@@ -49,7 +49,7 @@ CATEGORY_DATE_TIMESTAMP = "Date and timestamp changes"
 CATEGORY_BUILD_ENVIRONMENT = "Build environment and build configuration"
 CATEGORY_SBOM_DEPENDENCY = "SBOM and dependency metadata changes"
 CATEGORY_FILES_ADDED_REMOVED = "Files added or removed"
-CATEGORY_NON_DETERMINISTIC = "Non-deterministic build"
+CATEGORY_NON_DETERMINISTIC_BUILD = "Build non-deterministism"
 CATEGORY_OTHER_FILE_CHANGES = "Other file changes"
 CATEGORY_HASH_CHANGES = "Hash changes"
 
