@@ -74,7 +74,7 @@ FILE_DIFF_CHANGES: set[ChangeType] = {
 }
 
 # Special case for unknown changes
-UNKNOWN_CHANGE: ChangeType = ChangeType("unknown_change")
+UNKNOWN_CHANGE: ChangeType = ChangeType("other_unknown_change")
 
 def validate_change_types():
     """Validate that all change type constants under 'File diff changes' are included in FILE_DIFF_CHANGES.
