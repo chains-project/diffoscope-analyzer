@@ -6,45 +6,45 @@ from typing import NewType
 ChangeType = NewType("ChangeType", str)
 
 # Zipinfo
-PERMISSION_CHANGE: ChangeType = ChangeType("permission_change")
-OWNER_CHANGE: ChangeType = ChangeType("owner_change") # These dissapear after OSS-rebuild
-GROUP_CHANGE: ChangeType = ChangeType("group_change") # These dissapear after OSS-rebuild
+PERMISSION_CHANGE: ChangeType = ChangeType("file_permission_differences")
+OWNER_CHANGE: ChangeType = ChangeType("file_owner_differences") # These dissapear after OSS-rebuild
+GROUP_CHANGE: ChangeType = ChangeType("file_group_differences") # These dissapear after OSS-rebuild
 # NUMBER_OF_FILES_CHANGE: ChangeType = ChangeType("number_of_files_change")
-FILE_CONTENT_CHANGE: ChangeType = ChangeType("file_content_change") # This is replaced by unknown_file_content_change in a later step
-UNKNOWN_FILE_CONTENT_CHANGE: ChangeType = ChangeType("unknown_file_content_change")
-FILE_REORDERED_CHANGE: ChangeType = ChangeType("file_reordered_change")
-FILE_REMOVED_CHANGE: ChangeType = ChangeType("file_removed_change")
-FILE_ADDED_CHANGE: ChangeType = ChangeType("file_added_change")
+FILE_CONTENT_CHANGE: ChangeType = ChangeType("file_content_differences") # This is replaced by unknown_file_content_change in a later step
+UNKNOWN_FILE_CONTENT_CHANGE: ChangeType = ChangeType("unknown_file_content_differences")
+FILE_REORDERED_CHANGE: ChangeType = ChangeType("file_ordering_differences")
+FILE_REMOVED_CHANGE: ChangeType = ChangeType("file_removed_differences")
+FILE_ADDED_CHANGE: ChangeType = ChangeType("file_added_differences")
 
 # File name based changes
-BUILDINFO_CHANGE: ChangeType = ChangeType("buildinfo_change")
-SBOM_CHANGE: ChangeType = ChangeType("sbom_change")
+BUILDINFO_CHANGE: ChangeType = ChangeType("buildinfo_differences")
+SBOM_CHANGE: ChangeType = ChangeType("sbom_differences")
 
 # File diff changes
-TIMESTAMP_CHANGE: ChangeType = ChangeType("timestamp_change")
-HASH_IN_XML_CHANGE: ChangeType = ChangeType("hash_in_xml_change")
-HASH_IN_JSON_CHANGE: ChangeType = ChangeType("hash_in_json_change")
-HASH_FILE_CHANGE: ChangeType = ChangeType("hash_file_change")
-POM_CHANGE: ChangeType = ChangeType("pom_change")
-COPYRIGHT_CHANGE: ChangeType = ChangeType("copyright_change")
-JANDEX_CHANGE: ChangeType = ChangeType("jandex_change")
-LINE_ORDERING_CHANGE: ChangeType = ChangeType("line_ordering_change")
-GENERATED_ID_CHANGE: ChangeType = ChangeType("generated_id_change")
-LINE_ENDING_CHANGE: ChangeType = ChangeType("line_ending_change")
-JAVA_VERSION_CHANGE: ChangeType = ChangeType("java_version_change") # This is skipped because we skip analysis of class files, we might want to add it back in the future
-JAVASCRIPT_CHANGE: ChangeType = ChangeType("javascript_change")
-MANIFEST_CHANGE: ChangeType = ChangeType("manifest_change")
-DEPENDENCY_METADATA_CHANGE: ChangeType = ChangeType("dependency_metadata_change")
-PATH_CHANGE: ChangeType = ChangeType("path_change")
-WORD_ORDERING_CHANGE: ChangeType = ChangeType("word_ordering_change")
-GIT_COMMIT_CHANGE: ChangeType = ChangeType("git_commit_change")
-GIT_PROPERTIES_CHANGE: ChangeType = ChangeType("git_properties_change")
-CLASS_FILE_CHANGE: ChangeType = ChangeType("class_file_change")
-UNKNOWN_MANIFEST_CHANGE: ChangeType = ChangeType("unknown_manifest_change")
-BINARY_CHANGE: ChangeType = ChangeType("binary_change")
-CLASS_LINE_NUMBER_CHANGE: ChangeType = ChangeType("class_line_number_change")
-JSON_DIFF_CHANGE: ChangeType = ChangeType("json_diff_change")
-MANIFEST_REORDER_CHANGE: ChangeType = ChangeType("manifest_reorder_change")
+TIMESTAMP_CHANGE: ChangeType = ChangeType("timestamp_differences")
+HASH_IN_XML_CHANGE: ChangeType = ChangeType("hash_in_xml_differences")
+HASH_IN_JSON_CHANGE: ChangeType = ChangeType("hash_in_json_differences")
+HASH_FILE_CHANGE: ChangeType = ChangeType("hash_file_differences")
+POM_CHANGE: ChangeType = ChangeType("pom_differences")
+COPYRIGHT_CHANGE: ChangeType = ChangeType("copyright_differences")
+JANDEX_CHANGE: ChangeType = ChangeType("jandex_differences")
+LINE_ORDERING_CHANGE: ChangeType = ChangeType("line_ordering_differences")
+GENERATED_ID_CHANGE: ChangeType = ChangeType("generated_id_differences")
+LINE_ENDING_CHANGE: ChangeType = ChangeType("line_ending_differences")
+JAVA_VERSION_CHANGE: ChangeType = ChangeType("java_version_differences") # This is skipped because we skip analysis of class files, we might want to add it back in the future
+JAVASCRIPT_CHANGE: ChangeType = ChangeType("javascript_file_differences")
+MANIFEST_CHANGE: ChangeType = ChangeType("manifest_differences")
+DEPENDENCY_METADATA_CHANGE: ChangeType = ChangeType("dependency_metadata_differences")
+PATH_CHANGE: ChangeType = ChangeType("path_differences")
+WORD_ORDERING_CHANGE: ChangeType = ChangeType("word_ordering_differences")
+GIT_COMMIT_CHANGE: ChangeType = ChangeType("git_commit_differences")
+GIT_PROPERTIES_CHANGE: ChangeType = ChangeType("git_properties_differences")
+CLASS_FILE_CHANGE: ChangeType = ChangeType("class_file_differences")
+UNKNOWN_MANIFEST_CHANGE: ChangeType = ChangeType("unknown_manifest_differences")
+BINARY_CHANGE: ChangeType = ChangeType("binary_differences")
+CLASS_LINE_NUMBER_CHANGE: ChangeType = ChangeType("class_line_number_differences")
+JSON_DIFF_CHANGE: ChangeType = ChangeType("json_file_differences")
+MANIFEST_REORDER_CHANGE: ChangeType = ChangeType("manifest_ordering_differences")
 
 FILE_DIFF_CHANGES: set[ChangeType] = {
     TIMESTAMP_CHANGE,
@@ -74,7 +74,7 @@ FILE_DIFF_CHANGES: set[ChangeType] = {
 }
 
 # Special case for unknown changes
-UNKNOWN_CHANGE: ChangeType = ChangeType("other_unknown_change")
+UNKNOWN_CHANGE: ChangeType = ChangeType("other_unknown_differences")
 
 def validate_change_types():
     """Validate that all change type constants under 'File diff changes' are included in FILE_DIFF_CHANGES.
