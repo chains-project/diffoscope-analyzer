@@ -1,6 +1,6 @@
-# Diffoscope analyzer
+# Diffonomy - a diffoscope analyzation tool
 
-This project aims to help classify and create aggregate data for collections of diffoscope files.
+This project aims to help classify and create aggregate reports for collections of diffoscope files.
 
 ## Usage
 
